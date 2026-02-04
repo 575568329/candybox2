@@ -1,45 +1,25 @@
 {
   "main": "index.html",
-  "preload": "preload/services.js",
   "logo": "logo.png",
   "development": {
-    "main": "http://localhost:5173"
+    "main": "http://localhost:5174"
   },
   "features": [
     {
-      "code": "hello",
-      "explain": "这是插件应用的第一个功能",
+      "code": "games",
+      "explain": "小游戏集合 - 选择游戏开始冒险",
       "cmds": [
-        "你好",
-        "hello"
+        "小游戏",
+        "游戏",
+        "game"
       ]
     },
     {
-      "code": "read",
-      "explain": "功能指令+匹配指令示例，使用 node.js 能力读文件",
+      "code": "candybox2",
+      "explain": "直接打开糖果盒子2游戏",
       "cmds": [
-        "读文件",
-        {
-          "type": "files",
-          "fileType": "file",
-          "maxLength": 1,
-          "label": "读文件"
-        }
-      ]
-    },
-    {
-      "code": "write",
-      "explain": "匹配指令示例，使用 node.js 能力写文件",
-      "mainHide": true,
-      "cmds": [
-        {
-          "type": "over",
-          "label": "保存为文件"
-        },
-        {
-          "type": "img",
-          "label": "保存为文件"
-        }
+        "糖果盒子2",
+        "candybox2"
       ]
     }
   ]
