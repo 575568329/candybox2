@@ -1,6 +1,9 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { saveManager } from '../utils/saveManager.js'
+
+const router = useRouter()
 
 // 分类
 const categories = ref([
@@ -14,19 +17,12 @@ const categories = ref([
 const activeCategory = ref('all')
 const searchQuery = ref('')
 
-// 存档管理状态
-const showSaveManager = ref(false)
-const currentGameForSave = ref(null) // 当前正在管理存档的游戏
+// 存档信息
 const saveInfo = ref({
   hasSave: false,
   count: 0,
   candy: 0,
   lollipops: 0
-})
-const saveMessage = ref({
-  show: false,
-  type: 'success',
-  text: ''
 })
 
 // 游戏启动确认弹窗
@@ -210,110 +206,14 @@ const continueGame = () => {
   showGameStartModal.value = false
 }
 
-// 实际启动游戏
+// 实际启动游戏 - 使用路由跳转
 const launchGame = (game) => {
-  const gameUrl = window.location.origin + '/' + game.path
-
-  window.utools.ubrowser
-    .goto(gameUrl)
-    .run({
-      width: 1200,
-      height: 800,
-      center: true,
-      title: game.name
-    })
-    .then(([result, instance]) => {
-      console.log('游戏已打开', instance)
-    })
-    .catch(err => {
-      console.error('打开游戏失败', err)
-    })
+  router.push(`/game/${game.id}`)
 }
 
 // 选择分类
 const selectCategory = (categoryId) => {
   activeCategory.value = categoryId
-}
-
-// 显示提示消息
-const showMessage = (type, text) => {
-  saveMessage.value = { show: true, type, text }
-  setTimeout(() => {
-    saveMessage.value.show = false
-  }, 3000)
-}
-
-// 加载存档信息
-const loadSaveInfo = async (gameId) => {
-  const info = await saveManager.getSaveInfo(gameId)
-  saveInfo.value = info
-}
-
-// 切换存档管理面板
-const toggleSaveManager = (game) => {
-  currentGameForSave.value = game
-  showSaveManager.value = !showSaveManager.value
-  if (showSaveManager.value) {
-    loadSaveInfo(game.id)
-  }
-}
-
-// 导出存档
-const exportSave = async () => {
-  if (!currentGameForSave.value) return
-
-  const result = await saveManager.exportSave(currentGameForSave.value.id)
-  if (result.success) {
-    showMessage('success', result.message)
-  } else {
-    showMessage('error', result.message)
-  }
-}
-
-// 导入存档
-const importSave = async (event) => {
-  if (!currentGameForSave.value) return
-
-  const file = event.target.files?.[0]
-  if (!file) return
-
-  const result = await saveManager.importSave(currentGameForSave.value.id, file)
-  if (result.success) {
-    showMessage('success', result.message)
-    await loadSaveInfo(currentGameForSave.value.id)
-  } else {
-    showMessage('error', result.message)
-  }
-
-  // 清空文件选择
-  event.target.value = ''
-}
-
-// 清除存档
-const clearSave = async () => {
-  if (!currentGameForSave.value) return
-
-  if (!confirm(`确定要清除《${currentGameForSave.value.name}》的所有存档吗？此操作不可恢复！`)) {
-    return
-  }
-
-  const result = await saveManager.clearSave(currentGameForSave.value.id)
-  if (result.success) {
-    showMessage('success', result.message)
-    await loadSaveInfo(currentGameForSave.value.id)
-  } else {
-    showMessage('error', result.message)
-  }
-}
-
-// 组件挂载时加载存档信息
-onMounted(() => {
-  // 不再默认加载存档信息，改为在需要时加载
-})
-
-// 显示全局存档提示
-const showGlobalSaveHint = () => {
-  showMessage('success', '💡 请在游戏卡片上点击 💾 图标管理该游戏的存档')
 }
 </script>
 
@@ -341,89 +241,12 @@ const showGlobalSaveHint = () => {
         <span class="search-icon">🔍</span>
       </div>
       <div class="top-actions">
-        <button class="icon-btn" @click="showGlobalSaveHint" title="存档管理">
-          💾
-        </button>
         <div class="stats">
           <span class="stat-item">{{ stats.total }} 款游戏</span>
           <span v-if="stats.comingSoon > 0" class="stat-item coming-soon">
             {{ stats.comingSoon }} 款即将推出
           </span>
         </div>
-      </div>
-    </div>
-
-    <!-- 存档管理面板 -->
-    <div v-if="showSaveManager && currentGameForSave" class="save-manager-overlay" @click="showSaveManager = false">
-      <div class="save-manager-panel" @click.stop>
-        <div class="save-manager-header">
-          <h3>💾 {{ currentGameForSave.name }} - 存档管理</h3>
-          <button class="close-btn" @click="showSaveManager = false">✕</button>
-        </div>
-
-        <div class="save-manager-content">
-          <!-- 存档信息 -->
-          <div class="save-info-section">
-            <h4>当前存档</h4>
-            <div v-if="saveInfo.hasSave" class="save-info">
-              <div class="info-item">
-                <span class="info-label">糖果:</span>
-                <span class="info-value">{{ saveInfo.candy?.toLocaleString() || 0 }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">棒棒糖:</span>
-                <span class="info-value">{{ saveInfo.lollipops?.toLocaleString() || 0 }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">存档项:</span>
-                <span class="info-value">{{ saveInfo.count }} 个</span>
-              </div>
-            </div>
-            <div v-else class="no-save">
-              <span class="no-save-icon">📭</span>
-              <p>暂无存档</p>
-            </div>
-          </div>
-
-          <!-- 操作按钮 -->
-          <div class="save-actions">
-            <button class="action-btn primary" @click="exportSave">
-              <span class="btn-icon">📤</span>
-              <span>导出存档</span>
-            </button>
-            <button class="action-btn" @click="$refs.importInput.click()">
-              <span class="btn-icon">📥</span>
-              <span>导入存档</span>
-            </button>
-            <input
-              ref="importInput"
-              type="file"
-              accept=".json"
-              style="display: none"
-              @change="importSave"
-            />
-            <button
-              v-if="saveInfo.hasSave"
-              class="action-btn danger"
-              @click="clearSave"
-            >
-              <span class="btn-icon">🗑️</span>
-              <span>清除存档</span>
-            </button>
-          </div>
-
-          <!-- 提示信息 -->
-          <div class="save-tips">
-            <p>💡 提示：存档保存在本地 uTools 数据库中，可使用导出功能备份</p>
-          </div>
-        </div>
-
-        <!-- 消息提示 -->
-        <transition name="fade">
-          <div v-if="saveMessage.show" :class="['save-message', saveMessage.type]">
-            {{ saveMessage.text }}
-          </div>
-        </transition>
       </div>
     </div>
 
@@ -529,14 +352,6 @@ const showGlobalSaveHint = () => {
               <div class="game-icon">{{ game.icon }}</div>
               <div class="header-actions">
                 <div v-if="game.comingSoon" class="coming-soon-badge">即将推出</div>
-                <button
-                  v-if="!game.disabled && !game.comingSoon"
-                  class="save-icon-btn"
-                  @click.stop="toggleSaveManager(game)"
-                  title="存档管理"
-                >
-                  💾
-                </button>
               </div>
             </div>
 
@@ -849,32 +664,6 @@ const showGlobalSaveHint = () => {
   gap: 8px;
 }
 
-.save-icon-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transform: scale(0.9);
-}
-
-.game-card:hover .save-icon-btn {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.save-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.1);
-}
-
 .game-icon {
   font-size: 36px;
   line-height: 1;
@@ -1024,259 +813,6 @@ const showGlobalSaveHint = () => {
   .search-box {
     width: 140px;
   }
-}
-
-/* 存档管理面板 */
-.save-manager-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(5px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.save-manager-panel {
-  background: linear-gradient(135deg, #1e1e32 0%, #1a1a2e 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  width: 90%;
-  max-width: 480px;
-  max-height: 80vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  animation: slideUp 0.3s ease;
-  position: relative;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.save-manager-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.save-manager-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: white;
-}
-
-.close-btn {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 18px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-}
-
-.save-manager-content {
-  padding: 24px;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.save-info-section {
-  margin-bottom: 24px;
-}
-
-.save-info-section h4 {
-  margin: 0 0 16px 0;
-  font-size: 14px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.save-info {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 16px;
-}
-
-.info-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.info-item:last-child {
-  border-bottom: none;
-}
-
-.info-label {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.info-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: white;
-}
-
-.no-save {
-  text-align: center;
-  padding: 32px 16px;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.no-save-icon {
-  font-size: 48px;
-  display: block;
-  margin-bottom: 12px;
-  opacity: 0.5;
-}
-
-.no-save p {
-  margin: 0;
-  font-size: 14px;
-}
-
-.save-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.08);
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.action-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
-}
-
-.action-btn.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-color: transparent;
-}
-
-.action-btn.primary:hover {
-  background: linear-gradient(135deg, #7b8ff0 0%, #8b5bb8 100%);
-}
-
-.action-btn.danger {
-  background: rgba(255, 107, 107, 0.15);
-  border-color: rgba(255, 107, 107, 0.3);
-  color: #ff6b6b;
-}
-
-.action-btn.danger:hover {
-  background: rgba(255, 107, 107, 0.25);
-  border-color: rgba(255, 107, 107, 0.4);
-}
-
-.btn-icon {
-  font-size: 16px;
-}
-
-.save-tips {
-  padding: 12px;
-  background: rgba(255, 193, 7, 0.1);
-  border: 1px solid rgba(255, 193, 7, 0.2);
-  border-radius: 8px;
-}
-
-.save-tips p {
-  margin: 0;
-  font-size: 12px;
-  color: rgba(255, 193, 7, 0.9);
-  line-height: 1.5;
-}
-
-.save-message {
-  position: absolute;
-  bottom: 24px;
-  left: 24px;
-  right: 24px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  text-align: center;
-  animation: slideUp 0.3s ease;
-}
-
-.save-message.success {
-  background: rgba(76, 175, 80, 0.15);
-  border: 1px solid rgba(76, 175, 80, 0.3);
-  color: #4caf50;
-}
-
-.save-message.error {
-  background: rgba(244, 67, 54, 0.15);
-  border: 1px solid rgba(244, 67, 54, 0.3);
-  color: #f44336;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 
 /* 游戏启动确认弹窗 */

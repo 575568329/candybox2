@@ -1,0 +1,872 @@
+<script setup>
+import { ref, onMounted, onUnmounted, computed, markRaw } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { saveManager } from '../utils/saveManager.js'
+import CandyBox2 from '../components/CandyBox2.vue'
+
+const route = useRoute()
+const router = useRouter()
+
+const game = ref(null)
+const isLoading = ref(true)
+const hasError = ref(false)
+const showSaveManager = ref(false)
+const saveInfo = ref({
+  hasSave: false,
+  count: 0,
+  candy: 0,
+  lollipops: 0
+})
+const saveMessage = ref({
+  show: false,
+  type: 'success',
+  text: ''
+})
+
+const lastUpdateTime = ref(null)
+
+// 游戏配置
+const games = {
+  candybox2: {
+    id: 'candybox2',
+    name: '糖果盒子2',
+    englishName: 'Candy Box 2',
+    icon: '🍬',
+    component: markRaw(CandyBox2)
+  }
+}
+
+// 检查是否在 uTools 环境中
+const isUToolsEnv = computed(() => {
+  return typeof window !== 'undefined' && window.utools
+})
+
+// 加载存档信息（直接从 localStorage 读取）
+const loadSaveInfo = async () => {
+  if (!game.value) return
+
+  // 直接从 localStorage 读取存档
+  try {
+    const saveSlotKey = 'saveSlot'
+    const saveSlotData = localStorage.getItem(saveSlotKey)
+
+    if (saveSlotData) {
+      const saveData = typeof saveSlotData === 'string'
+        ? JSON.parse(saveSlotData)
+        : saveSlotData
+
+      const slots = []
+      for (const [key, value] of Object.entries(saveData)) {
+        if (key.startsWith('save') && value && typeof value === 'object') {
+          const slotNum = key.replace('save', '')
+          slots.push({
+            slot: slotNum,
+            timestamp: value.saveDate || value.timestamp || Date.now(),
+            candies: value.candies || value.candy || 0,
+            lollipops: value.lollipops || value.lollipop || 0
+          })
+        }
+      }
+
+      if (slots.length > 0) {
+        const latestSlot = slots.sort((a, b) => b.timestamp - a.timestamp)[0]
+        saveInfo.value = {
+          hasSave: true,
+          count: localStorage.length,
+          candy: latestSlot.candies,
+          lollipops: latestSlot.lollipops,
+          slots: slots,
+          lastUpdate: latestSlot.timestamp,
+          source: 'localStorage'
+        }
+        console.log('[存档管理器] ✓ 从 localStorage 读取存档成功')
+      } else {
+        saveInfo.value = { hasSave: false, count: 0 }
+      }
+    } else {
+      saveInfo.value = { hasSave: false, count: 0 }
+    }
+  } catch (error) {
+    console.error('获取存档信息失败:', error)
+    saveInfo.value = { hasSave: false, count: 0, error: error.message }
+  }
+}
+
+// 显示提示消息
+const showMessage = (type, text) => {
+  saveMessage.value = { show: true, type, text }
+  setTimeout(() => {
+    saveMessage.value.show = false
+  }, 3000)
+}
+
+// 导出存档
+const exportSave = async () => {
+  if (!game.value) return
+
+  const result = await saveManager.exportSave(game.value.id)
+  if (result.success) {
+    showMessage('success', result.message)
+  } else {
+    showMessage('error', result.message)
+  }
+}
+
+// 导入存档
+const importSave = async (event) => {
+  if (!game.value) return
+
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  const result = await saveManager.importSave(game.value.id, file)
+  if (result.success) {
+    showMessage('success', result.message)
+    await loadSaveInfo()
+  } else {
+    showMessage('error', result.message)
+  }
+
+  // 清空文件选择
+  event.target.value = ''
+}
+
+// 格式化时间
+const formatTime = (date) => {
+  const now = new Date()
+  const diff = Math.floor((now - date) / 1000)
+
+  if (diff < 60) return `${diff}秒前`
+  if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`
+  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+}
+
+// 清除存档
+const clearSave = async () => {
+  if (!game.value) return
+
+  if (!confirm(`确定要清除《${game.value.name}》的所有存档吗?此操作不可恢复!`)) {
+    return
+  }
+
+  // 直接清除 localStorage
+  try {
+    const saveSlotKey = 'saveSlot'
+    localStorage.removeItem(saveSlotKey)
+
+    showMessage('success', '存档已清除')
+    await loadSaveInfo()
+
+    // 刷新页面以重新加载游戏
+    setTimeout(() => {
+      window.location.reload()
+    }, 1000)
+  } catch (error) {
+    showMessage('error', `清除失败: ${error.message}`)
+  }
+}
+
+// 返回游戏列表
+const goBack = () => {
+  router.push('/')
+}
+
+let saveRefreshTimer = null
+
+// 刷新存档信息
+const refreshSaveInfo = async () => {
+  if (!game.value) return
+  await loadSaveInfo()
+  lastUpdateTime.value = new Date()
+  console.log(`[存档同步] 已更新存档信息`)
+}
+
+// 手动刷新存档
+const manualRefreshSave = async () => {
+  showMessage('success', '正在刷新存档...')
+  await refreshSaveInfo()
+  showMessage('success', '存档已更新 ✓')
+}
+
+onMounted(async () => {
+  const gameId = route.params.id
+
+  if (!games[gameId]) {
+    hasError.value = true
+    isLoading.value = false
+    return
+  }
+
+  game.value = games[gameId]
+
+  // 等待一小段时间确保组件已加载
+  setTimeout(async () => {
+    isLoading.value = false
+    await loadSaveInfo()
+  }, 500)
+
+  // 检查是否在 uTools 环境中
+  if (!isUToolsEnv.value) {
+    console.warn('当前不在 uTools 环境中,部分功能可能不可用')
+  }
+
+  // 定期刷新存档信息（每5秒）
+  saveRefreshTimer = setInterval(() => {
+    refreshSaveInfo()
+  }, 5000)
+  console.log('[存档同步] 已启动存档自动同步（每5秒）')
+})
+
+onUnmounted(() => {
+  // 清理定时器
+  if (saveRefreshTimer) {
+    clearInterval(saveRefreshTimer)
+    console.log('[存档同步] 已停止存档自动同步')
+  }
+})
+</script>
+
+<template>
+  <div class="game-view">
+    <!-- 顶部栏 -->
+    <div class="game-header">
+      <div class="header-left">
+        <button class="back-btn" @click="goBack" title="返回游戏列表">
+          <span class="back-icon">←</span>
+          <span class="back-text">返回</span>
+        </button>
+        <div class="game-title">
+          <span class="game-icon">{{ game?.icon }}</span>
+          <div class="title-text">
+            <h1 class="game-name">{{ game?.name }}</h1>
+            <p class="game-english-name">{{ game?.englishName }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button
+          class="icon-btn"
+          @click="showSaveManager = !showSaveManager"
+          title="存档管理"
+        >
+          💾 存档
+        </button>
+      </div>
+    </div>
+
+    <!-- 游戏容器 -->
+    <div class="game-container">
+      <!-- 加载状态 -->
+      <div v-if="isLoading" class="loading-state">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">正在加载游戏...</p>
+      </div>
+
+      <!-- 错误状态 -->
+      <div v-else-if="hasError" class="error-state">
+        <div class="error-icon">⚠️</div>
+        <h2 class="error-title">游戏加载失败</h2>
+        <p class="error-message">无法加载游戏,请检查游戏文件是否存在</p>
+        <button class="error-btn" @click="goBack">返回游戏列表</button>
+      </div>
+
+      <!-- 游戏组件 -->
+      <component
+        v-if="!isLoading && !hasError && game"
+        :is="game.component"
+        class="game-component"
+      />
+    </div>
+
+    <!-- 存档管理面板 -->
+    <transition name="slide">
+      <div v-if="showSaveManager" class="save-manager-overlay" @click="showSaveManager = false">
+        <div class="save-manager-panel" @click.stop>
+          <div class="save-manager-header">
+            <h3>💾 存档管理</h3>
+            <div class="header-actions">
+              <button class="refresh-btn" @click="manualRefreshSave" title="刷新存档信息">
+                🔄
+              </button>
+              <button class="close-btn" @click="showSaveManager = false">✕</button>
+            </div>
+          </div>
+
+          <div class="save-manager-content">
+            <!-- 存档信息 -->
+            <div class="save-info-section">
+              <div class="section-header">
+                <h4>当前存档</h4>
+                <span v-if="lastUpdateTime" class="update-time">
+                  更新于 {{ formatTime(lastUpdateTime) }}
+                </span>
+              </div>
+              <div v-if="saveInfo.hasSave" class="save-info">
+                <div class="info-item">
+                  <span class="info-label">🍬 糖果:</span>
+                  <span class="info-value highlight">{{ saveInfo.candy?.toLocaleString() || 0 }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">🍭 棒棒糖:</span>
+                  <span class="info-value highlight">{{ saveInfo.lollipops?.toLocaleString() || 0 }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">📦 存档项:</span>
+                  <span class="info-value">{{ saveInfo.count }} 个</span>
+                </div>
+              </div>
+              <div v-else class="no-save">
+                <span class="no-save-icon">📭</span>
+                <p>暂无存档</p>
+              </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="save-actions">
+              <button class="action-btn primary" @click="exportSave">
+                <span class="btn-icon">📤</span>
+                <span>导出存档</span>
+              </button>
+              <button class="action-btn" @click="$refs.importInput.click()">
+                <span class="btn-icon">📥</span>
+                <span>导入存档</span>
+              </button>
+              <input
+                ref="importInput"
+                type="file"
+                accept=".json"
+                style="display: none"
+                @change="importSave"
+              />
+              <button
+                v-if="saveInfo.hasSave"
+                class="action-btn danger"
+                @click="clearSave"
+              >
+                <span class="btn-icon">🗑️</span>
+                <span>清除存档</span>
+              </button>
+            </div>
+
+            <!-- 提示信息 -->
+            <div class="save-tips">
+              <p>💡 提示:清除存档后会刷新游戏,请确保已导出备份</p>
+            </div>
+          </div>
+
+          <!-- 消息提示 -->
+          <transition name="fade">
+            <div v-if="saveMessage.show" :class="['save-message', saveMessage.type]">
+              {{ saveMessage.text }}
+            </div>
+          </transition>
+        </div>
+      </div>
+    </transition>
+  </div>
+</template>
+
+<style scoped>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.game-view {
+  width: 100%;
+  height: 100vh;
+  background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 顶部栏 */
+.game-header {
+  height: 64px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateX(-2px);
+}
+
+.back-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.back-text {
+  font-weight: 500;
+}
+
+.game-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.game-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.title-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.game-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  line-height: 1.2;
+}
+
+.game-english-name {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.2;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 游戏容器 */
+.game-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.game-component {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* 加载状态 */
+.loading-state {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: #1a1a2e;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 错误状态 */
+.error-state {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: #1a1a2e;
+  padding: 20px;
+}
+
+.error-icon {
+  font-size: 64px;
+  opacity: 0.5;
+}
+
+.error-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: white;
+}
+
+.error-message {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  max-width: 400px;
+}
+
+.error-btn {
+  margin-top: 16px;
+  padding: 10px 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.error-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 存档管理面板 */
+.save-manager-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.save-manager-panel {
+  background: linear-gradient(135deg, #1e1e32 0%, #1a1a2e 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.save-manager-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.save-manager-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.refresh-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refresh-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: rotate(180deg);
+}
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.save-manager-content {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.save-info-section {
+  margin-bottom: 24px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.save-info-section h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.update-time {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 400;
+}
+
+.save-info {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+.info-value.highlight {
+  font-size: 16px;
+  color: #ffd93d;
+}
+
+.no-save {
+  text-align: center;
+  padding: 32px 16px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.no-save-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.no-save p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.save-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: transparent;
+}
+
+.action-btn.primary:hover {
+  background: linear-gradient(135deg, #7b8ff0 0%, #8b5bb8 100%);
+}
+
+.action-btn.danger {
+  background: rgba(255, 107, 107, 0.15);
+  border-color: rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+.action-btn.danger:hover {
+  background: rgba(255, 107, 107, 0.25);
+  border-color: rgba(255, 107, 107, 0.4);
+}
+
+.btn-icon {
+  font-size: 16px;
+}
+
+.save-tips {
+  padding: 12px;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.2);
+  border-radius: 8px;
+}
+
+.save-tips p {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 193, 7, 0.9);
+  line-height: 1.5;
+}
+
+.save-message {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  right: 24px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.save-message.success {
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+}
+
+.save-message.error {
+  background: rgba(244, 67, 54, 0.15);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  color: #f44336;
+}
+
+/* 动画 */
+.slide-enter-active,
+.slide-leave-active {
+  transition: opacity 0.3s;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  opacity: 0;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

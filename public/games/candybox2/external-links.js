@@ -45,16 +45,26 @@
   }
 
   // 也监听动态内容加载
-  const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
-      if (mutation.addedNodes.length > 0) {
-        initExternalLinks();
-      }
-    });
-  });
+  function startObserver() {
+    // 确保 document.body 存在
+    if (!document.body) {
+      setTimeout(startObserver, 50);
+      return;
+    }
 
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.addedNodes.length > 0) {
+          initExternalLinks();
+        }
+      });
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  startObserver();
 })();
