@@ -46,7 +46,7 @@ export class SaveGameManager {
       }
 
       docs.forEach(doc => {
-        const key = doc._id.replace(this.saveKey, '')
+        const key = doc._id.replace(savePrefix, '')
         saveData.data[key] = doc.data
       })
 
