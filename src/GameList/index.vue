@@ -133,9 +133,21 @@ const stats = computed(() => ({
   comingSoon: games.value.filter(g => g.comingSoon).length
 }))
 
+// 检查是否在 uTools 环境中
+const isUToolsEnv = computed(() => {
+  return typeof window !== 'undefined' && window.utools
+})
+
 // 打开游戏
 const openGame = (game) => {
   if (game.disabled || game.comingSoon) return
+
+  // 检查是否在 uTools 环境中
+  if (!isUToolsEnv.value) {
+    console.error('当前不在 uTools 环境中')
+    alert('请在 uTools 中打开此插件以使用游戏功能')
+    return
+  }
 
   // 使用 ubrowser 打开本地游戏文件
   const gameUrl = window.location.origin + '/' + game.path
@@ -164,6 +176,12 @@ const selectCategory = (categoryId) => {
 
 <template>
   <div class="game-container">
+    <!-- 环境提示 -->
+    <div v-if="!isUToolsEnv" class="env-warning">
+      <span class="warning-icon">⚠️</span>
+      <span class="warning-text">当前在浏览器中预览，请在 uTools 中安装此插件以使用完整功能</span>
+    </div>
+
     <!-- 顶部栏 -->
     <div class="top-bar">
       <div class="logo">
@@ -282,6 +300,26 @@ const selectCategory = (categoryId) => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* 环境提示 */
+.env-warning {
+  background: rgba(255, 193, 7, 0.15);
+  border-bottom: 1px solid rgba(255, 193, 7, 0.3);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.warning-icon {
+  font-size: 16px;
+}
+
+.warning-text {
+  font-size: 12px;
+  color: #ffc107;
 }
 
 /* 顶部栏 */

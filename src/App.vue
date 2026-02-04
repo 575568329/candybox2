@@ -4,8 +4,19 @@ import GameList from './GameList/index.vue'
 
 const route = ref('')
 
+// 检查是否在 uTools 环境中
+const isUToolsEnv = () => {
+  return typeof window !== 'undefined' && window.utools
+}
+
 // 打开 Candy Box 2 游戏
 const openCandyBox2 = () => {
+  if (!isUToolsEnv()) {
+    console.error('当前不在 uTools 环境中')
+    alert('请在 uTools 中打开此插件')
+    return
+  }
+
   const gameUrl = window.location.origin + '/src/candybox2/index.html'
 
   window.utools.ubrowser
@@ -25,6 +36,12 @@ const openCandyBox2 = () => {
 }
 
 onMounted(() => {
+  // 检查是否在 uTools 环境中
+  if (!isUToolsEnv()) {
+    route.value = ''
+    return
+  }
+
   // 如果没有路由，默认显示游戏列表
   if (!window.utools.getCurrentPlugin()) {
     route.value = ''
