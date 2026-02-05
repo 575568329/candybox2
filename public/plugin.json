@@ -3,7 +3,7 @@
   "description": "精选小游戏合集，支持存档功能，包括俄罗斯方块、糖果盒子2等多款经典游戏",
   "main": "index.html",
   "logo": "logo.png",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "author": "Your Name",
   "homepage": "https://github.com/yourusername/games-collection",
   "development": {
