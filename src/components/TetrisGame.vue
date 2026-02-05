@@ -79,6 +79,19 @@ const isLocking = ref(false) // 是否正在锁定方块
 // 按键配置
 const swapDropKeys = ref(false) // 是否互换软降和硬降按键
 
+// 按键状态跟踪（用于长按支持）
+const keysPressed = ref({
+  ArrowLeft: false,
+  ArrowRight: false,
+  ArrowDown: false
+})
+const lastMoveTime = ref({
+  ArrowLeft: 0,
+  ArrowRight: 0,
+  ArrowDown: 0
+})
+const MOVE_INTERVAL = 150 // 移动间隔（毫秒）
+
 // 返回游戏列表
 const goBack = () => {
   router.push('/')
@@ -389,9 +402,36 @@ const gameLoop = (currentTime) => {
 
   const deltaTime = currentTime - lastTime
 
+  // 自动下落
   if (deltaTime > dropInterval) {
     movePiece('down')
     lastTime = currentTime
+  }
+
+  // 处理方向键移动（统一在游戏循环中处理，避免重复触发）
+  if (keysPressed.value.ArrowLeft) {
+    const timeSinceLastMove = currentTime - lastMoveTime.value.ArrowLeft
+    if (lastMoveTime.value.ArrowLeft === 0 || timeSinceLastMove > MOVE_INTERVAL) {
+      movePiece('left')
+      lastMoveTime.value.ArrowLeft = currentTime
+    }
+  }
+
+  if (keysPressed.value.ArrowRight) {
+    const timeSinceLastMove = currentTime - lastMoveTime.value.ArrowRight
+    if (lastMoveTime.value.ArrowRight === 0 || timeSinceLastMove > MOVE_INTERVAL) {
+      movePiece('right')
+      lastMoveTime.value.ArrowRight = currentTime
+    }
+  }
+
+  if (keysPressed.value.ArrowDown && !swapDropKeys.value) {
+    // 只有当 ArrowDown 是缓降键时才支持长按
+    const timeSinceLastMove = currentTime - lastMoveTime.value.ArrowDown
+    if (lastMoveTime.value.ArrowDown === 0 || timeSinceLastMove > MOVE_INTERVAL) {
+      softDrop()
+      lastMoveTime.value.ArrowDown = currentTime
+    }
   }
 
   gameLoopId = requestAnimationFrame(gameLoop)
@@ -408,6 +448,14 @@ const startGame = () => {
   isPlaying.value = true
   dropInterval = 1000
 
+  // 重置按键状态，防止重启后自动移动
+  keysPressed.value.ArrowLeft = false
+  keysPressed.value.ArrowRight = false
+  keysPressed.value.ArrowDown = false
+  lastMoveTime.value.ArrowLeft = 0
+  lastMoveTime.value.ArrowRight = 0
+  lastMoveTime.value.ArrowDown = 0
+
   spawnPiece()
   lastTime = performance.now()
   gameLoopId = requestAnimationFrame(gameLoop)
@@ -423,6 +471,14 @@ const restartGame = () => {
   isPaused.value = false
   isPlaying.value = true
   dropInterval = 1000
+
+  // 重置按键状态，防止重启后自动移动
+  keysPressed.value.ArrowLeft = false
+  keysPressed.value.ArrowRight = false
+  keysPressed.value.ArrowDown = false
+  lastMoveTime.value.ArrowLeft = 0
+  lastMoveTime.value.ArrowRight = 0
+  lastMoveTime.value.ArrowDown = 0
 
   spawnPiece()
   lastTime = performance.now()
@@ -453,6 +509,10 @@ const togglePause = () => {
 // 处理窗口失去焦点
 const handleWindowBlur = () => {
   hasWindowFocus.value = false
+  // 重置按键状态，防止恢复后自动移动
+  keysPressed.value.ArrowLeft = false
+  keysPressed.value.ArrowRight = false
+  keysPressed.value.ArrowDown = false
   // 如果游戏正在进行且未暂停，自动暂停
   if (isPlaying.value && !isPaused.value && !gameOver.value) {
     isPaused.value = true
@@ -469,6 +529,10 @@ const handleWindowFocus = () => {
 // 处理页面可见性变化
 const handleVisibilityChange = () => {
   if (document.hidden) {
+    // 重置按键状态，防止恢复后自动移动
+    keysPressed.value.ArrowLeft = false
+    keysPressed.value.ArrowRight = false
+    keysPressed.value.ArrowDown = false
     // 页面隐藏时自动暂停
     if (isPlaying.value && !isPaused.value && !gameOver.value) {
       isPaused.value = true
@@ -916,11 +980,17 @@ const handleKeyDown = (event) => {
   switch (event.key) {
     case 'ArrowLeft':
       event.preventDefault()
-      movePiece('left')
+      if (!keysPressed.value.ArrowLeft) {
+        keysPressed.value.ArrowLeft = true
+        lastMoveTime.value.ArrowLeft = 0 // 重置移动时间，让游戏循环立即移动
+      }
       break
     case 'ArrowRight':
       event.preventDefault()
-      movePiece('right')
+      if (!keysPressed.value.ArrowRight) {
+        keysPressed.value.ArrowRight = true
+        lastMoveTime.value.ArrowRight = 0 // 重置移动时间，让游戏循环立即移动
+      }
       break
     case 'ArrowDown':
       event.preventDefault()
@@ -928,7 +998,10 @@ const handleKeyDown = (event) => {
       if (swapDropKeys.value) {
         hardDrop() // 互换后：向下键硬降
       } else {
-        softDrop() // 默认：向下键缓降
+        if (!keysPressed.value.ArrowDown) {
+          keysPressed.value.ArrowDown = true
+          lastMoveTime.value.ArrowDown = 0 // 重置移动时间，让游戏循环立即移动
+        }
       }
       break
     case ' ':
@@ -956,6 +1029,13 @@ const handleKeyDown = (event) => {
         togglePause()
       }
       break
+  }
+}
+
+// 按键释放处理（用于长按支持）
+const handleKeyUp = (event) => {
+  if (keysPressed.value.hasOwnProperty(event.key)) {
+    keysPressed.value[event.key] = false
   }
 }
 
@@ -1086,6 +1166,7 @@ onMounted(async () => {
   getUserInfo()
   initBoard()
   window.addEventListener('keydown', handleKeyDown)
+  window.addEventListener('keyup', handleKeyUp)
 
   // 监听窗口焦点变化
   window.addEventListener('blur', handleWindowBlur)
@@ -1109,6 +1190,7 @@ onUnmounted(() => {
     cancelAnimationFrame(gameLoopId)
   }
   window.removeEventListener('keydown', handleKeyDown)
+  window.removeEventListener('keyup', handleKeyUp)
 
   // 移除焦点和可见性事件监听
   window.removeEventListener('blur', handleWindowBlur)
