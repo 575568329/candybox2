@@ -26,6 +26,52 @@ const saveMessage = ref({
 
 const lastUpdateTime = ref(null)
 
+// 导航栏自动隐藏
+const isHeaderVisible = ref(true)
+let hideTimer = null
+const HIDE_DELAY = 3000 // 3秒后自动隐藏
+
+// 显示导航栏
+const showHeader = () => {
+  isHeaderVisible.value = true
+  resetHideTimer()
+}
+
+// 隐藏导航栏
+const hideHeader = () => {
+  isHeaderVisible.value = false
+}
+
+// 重置隐藏定时器
+const resetHideTimer = () => {
+  if (hideTimer) {
+    clearTimeout(hideTimer)
+  }
+  hideTimer = setTimeout(hideHeader, HIDE_DELAY)
+}
+
+// 处理鼠标移动
+const handleMouseMove = () => {
+  if (!isHeaderVisible.value) {
+    showHeader()
+  } else {
+    resetHideTimer()
+  }
+}
+
+// 处理鼠标进入顶部区域
+const handleHeaderMouseEnter = () => {
+  if (hideTimer) {
+    clearTimeout(hideTimer)
+  }
+  isHeaderVisible.value = true
+}
+
+// 处理鼠标离开顶部区域
+const handleHeaderMouseLeave = () => {
+  resetHideTimer()
+}
+
 // 游戏配置
 const games = {
   candybox2: {
@@ -33,7 +79,8 @@ const games = {
     name: '糖果盒子2',
     englishName: 'Candy Box 2',
     icon: '🍬',
-    path: '/games/candybox2/index.html'
+    path: '/games/candybox2/index.html',
+    color: '#ff6b6b'
   }
 }
 
@@ -89,26 +136,35 @@ const showMessage = (type, text) => {
 }
 
 // 清除存档
-const clearSave = () => {
+const clearSave = async () => {
   if (!game.value) return
 
   if (!confirm(`确定要清除《${game.value.name}》的所有存档吗?此操作不可恢复!`)) {
     return
   }
 
-  // 直接清除 localStorage
   try {
-    const saveSlotKey = 'saveSlot'
-    localStorage.removeItem(saveSlotKey)
+    showMessage('success', '正在清除存档...')
 
-    showMessage('success', '存档已清除')
-    loadSaveInfo()
+    // 使用 saveManager 清除 uTools 数据库中的存档
+    const result = await saveManager.clearSave(game.value.id)
 
-    // 刷新游戏
-    if (iframeRef.value) {
-      iframeRef.value.src = iframeRef.value.src
+    if (result.success) {
+      showMessage('success', result.message || '存档已清除')
+
+      // 刷新游戏，重新加载 iframe
+      if (iframeRef.value) {
+        const currentSrc = iframeRef.value.src
+        iframeRef.value.src = currentSrc
+      }
+
+      // 刷新存档信息
+      await loadSaveInfo()
+    } else {
+      showMessage('error', result.message || '清除失败')
     }
   } catch (error) {
+    console.error('[清除存档] 错误:', error)
     showMessage('error', `清除失败: ${error.message}`)
   }
 }
@@ -156,6 +212,12 @@ const deleteSlot = async (slotNum) => {
       }, 5000)
 
       const messageHandler = (event) => {
+        // 验证消息来源
+        if (event.origin !== window.location.origin) {
+          console.warn('[GameView] 收到来自未知来源的消息:', event.origin)
+          return
+        }
+
         if (event.data && event.data.type === 'candybox2-slot-deleted') {
           clearTimeout(timeout)
           window.removeEventListener('message', messageHandler)
@@ -168,7 +230,7 @@ const deleteSlot = async (slotNum) => {
       iframeRef.value.contentWindow.postMessage({
         type: 'candybox2-delete-slot',
         slotNum: slotNum
-      }, '*')
+      }, window.location.origin)
     })
 
     if (result.success) {
@@ -206,11 +268,42 @@ const onIframeLoad = () => {
   isLoading.value = false
   hasError.value = false
 
-  // 延迟读取存档，确保游戏初始化完成
-  setTimeout(() => {
-    console.log('[GameView] 开始读取存档（iframe 加载后）')
-    loadSaveInfo()
-  }, 2000)
+  // 使用智能重试机制读取存档，而不是固定延迟
+  let retryCount = 0
+  const maxRetries = 5
+  const retryDelay = 500 // 500ms 间隔
+
+  const attemptLoadSave = async () => {
+    retryCount++
+    console.log(`[GameView] 尝试读取存档 (${retryCount}/${maxRetries})`)
+
+    try {
+      const result = await loadSaveInfo()
+
+      // 如果成功读取到存档或确定没有存档，停止重试
+      if (saveInfo.value.hasSave || result?.error !== 'iframe 不可用') {
+        console.log('[GameView] ✓ 存档读取成功或确认无存档')
+        return
+      }
+
+      // 继续重试
+      if (retryCount < maxRetries) {
+        setTimeout(attemptLoadSave, retryDelay)
+      } else {
+        console.log('[GameView] 已达到最大重试次数，停止尝试')
+      }
+    } catch (error) {
+      console.error('[GameView] 存档读取失败:', error)
+
+      // 发生错误时也继续重试几次
+      if (retryCount < maxRetries) {
+        setTimeout(attemptLoadSave, retryDelay)
+      }
+    }
+  }
+
+  // 开始尝试读取存档
+  setTimeout(attemptLoadSave, retryDelay)
 }
 
 // iframe 加载失败
@@ -220,6 +313,7 @@ const onIframeError = () => {
 }
 
 let saveRefreshTimer = null
+let messageHandler = null
 
 // 刷新存档信息
 const refreshSaveInfo = async () => {
@@ -257,10 +351,8 @@ onMounted(async () => {
 
   game.value = games[gameId]
 
-  // 等待一小段时间后开始读取存档
-  setTimeout(() => {
-    loadSaveInfo()
-  }, 1000)
+  // 等待 iframe 加载后，使用智能重试机制读取存档
+  // 这里不需要手动调用 loadSaveInfo，因为在 onIframeLoad 中已经处理
 
   // 定期刷新存档信息（每5秒）
   saveRefreshTimer = setInterval(() => {
@@ -269,12 +361,25 @@ onMounted(async () => {
   console.log('[存档同步] 已启动存档自动同步（每5秒）')
 
   // 监听来自 iframe 的存档更新事件
-  window.addEventListener('message', (event) => {
+  messageHandler = (event) => {
+    // 验证消息来源
+    if (event.origin !== window.location.origin) {
+      console.warn('[GameView] 收到来自未知来源的消息:', event.origin)
+      return
+    }
+
     if (event.data && event.data.type === 'candybox2-save-updated') {
       console.log('[GameView] 收到存档更新通知，立即刷新存档信息')
       refreshSaveInfo()
     }
-  })
+  }
+  window.addEventListener('message', messageHandler)
+
+  // 监听鼠标移动，用于自动隐藏/显示导航栏
+  document.addEventListener('mousemove', handleMouseMove)
+
+  // 启动自动隐藏定时器
+  resetHideTimer()
 })
 
 onUnmounted(() => {
@@ -283,13 +388,31 @@ onUnmounted(() => {
     clearInterval(saveRefreshTimer)
     console.log('[存档同步] 已停止存档自动同步')
   }
+
+  // 清理导航栏自动隐藏定时器
+  if (hideTimer) {
+    clearTimeout(hideTimer)
+  }
+
+  // 清理事件监听器
+  if (messageHandler) {
+    window.removeEventListener('message', messageHandler)
+    messageHandler = null
+  }
+
+  document.removeEventListener('mousemove', handleMouseMove)
 })
 </script>
 
 <template>
   <div class="game-view">
     <!-- 顶部栏 -->
-    <div class="game-header">
+    <div
+      class="game-header"
+      :class="{ hidden: !isHeaderVisible }"
+      @mouseenter="handleHeaderMouseEnter"
+      @mouseleave="handleHeaderMouseLeave"
+    >
       <div class="header-left">
         <button class="back-btn" @click="goBack" title="返回游戏列表">
           <span class="back-icon">←</span>
@@ -303,6 +426,7 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
+
       <div class="header-right">
         <button
           class="icon-btn"
@@ -441,7 +565,7 @@ onUnmounted(() => {
 .game-view {
   width: 100%;
   height: 100vh;
-  background: #1a1a2e;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -450,14 +574,22 @@ onUnmounted(() => {
 /* 顶部栏 */
 .game-header {
   height: 48px;
-  background: rgba(255, 255, 255, 0.05);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
   flex-shrink: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.game-header.hidden {
+  transform: translateY(-100%);
+  opacity: 0;
 }
 
 .header-left {
@@ -471,7 +603,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 3px;
   padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 5px;
   color: white;
@@ -481,7 +613,7 @@ onUnmounted(() => {
 }
 
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.25);
   border-color: rgba(255, 255, 255, 0.3);
   transform: translateX(-2px);
 }
@@ -499,6 +631,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
+  transition: all 0.3s ease;
+  overflow: hidden;
 }
 
 .game-icon {
@@ -521,7 +655,7 @@ onUnmounted(() => {
 
 .game-english-name {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
   line-height: 1.2;
 }
 
@@ -536,7 +670,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 4px;
   padding: 5px 10px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
   color: white;
@@ -546,7 +680,7 @@ onUnmounted(() => {
 }
 
 .icon-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.25);
   border-color: rgba(255, 255, 255, 0.3);
 }
 
@@ -576,13 +710,13 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 20px;
-  background: #1a1a2e;
+  background: #ffffff;
 }
 
 .loading-spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid rgba(255, 255, 255, 0.1);
+  border: 4px solid rgba(0, 0, 0, 0.1);
   border-top-color: #667eea;
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -596,7 +730,7 @@ onUnmounted(() => {
 
 .loading-text {
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(0, 0, 0, 0.6);
 }
 
 /* 错误状态 */
@@ -611,24 +745,24 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  background: #1a1a2e;
+  background: #ffffff;
   padding: 20px;
 }
 
 .error-icon {
   font-size: 64px;
-  opacity: 0.5;
+  opacity: 0.3;
 }
 
 .error-title {
   font-size: 24px;
   font-weight: 600;
-  color: white;
+  color: #333;
 }
 
 .error-message {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(0, 0, 0, 0.6);
   text-align: center;
   max-width: 400px;
 }
@@ -636,18 +770,18 @@ onUnmounted(() => {
 .error-btn {
   margin-top: 16px;
   padding: 10px 24px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 8px;
-  color: white;
+  color: #333;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .error-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 0, 0, 0.2);
 }
 
 /* 存档管理面板 */
@@ -873,41 +1007,6 @@ onUnmounted(() => {
   border-color: rgba(255, 107, 107, 0.4);
 }
 
-.save-info {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 16px;
-}
-
-.info-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.info-item:last-child {
-  border-bottom: none;
-}
-
-.info-label {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.info-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: white;
-}
-
-.info-value.highlight {
-  font-size: 16px;
-  color: #ffd93d;
-}
-
 .no-save {
   text-align: center;
   padding: 32px 16px;
@@ -991,20 +1090,6 @@ onUnmounted(() => {
 
 .btn-icon {
   font-size: 16px;
-}
-
-.save-tips {
-  padding: 12px;
-  background: rgba(255, 193, 7, 0.1);
-  border: 1px solid rgba(255, 193, 7, 0.2);
-  border-radius: 8px;
-}
-
-.save-tips p {
-  margin: 0;
-  font-size: 12px;
-  color: rgba(255, 193, 7, 0.9);
-  line-height: 1.5;
 }
 
 .save-message {

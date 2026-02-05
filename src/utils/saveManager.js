@@ -174,6 +174,8 @@ export class SaveGameManager {
         return
       }
 
+      const targetOrigin = window.location.origin
+
       // 设置超时
       const timeout = setTimeout(() => {
         window.removeEventListener('message', messageHandler)
@@ -182,6 +184,12 @@ export class SaveGameManager {
 
       // 监听来自 iframe 的响应
       const messageHandler = (event) => {
+        // 验证消息来源
+        if (event.origin !== targetOrigin) {
+          console.warn('[存档管理器] 收到来自未知来源的消息:', event.origin)
+          return
+        }
+
         if (event.data && event.data.type === 'candybox2-save-data') {
           clearTimeout(timeout)
           window.removeEventListener('message', messageHandler)
@@ -194,7 +202,7 @@ export class SaveGameManager {
       // 向 iframe 发送请求
       iframe.contentWindow.postMessage({
         type: 'candybox2-get-save-data'
-      }, '*')
+      }, targetOrigin)
     })
   }
 
@@ -208,6 +216,8 @@ export class SaveGameManager {
         return
       }
 
+      const targetOrigin = window.location.origin
+
       // 设置超时
       const timeout = setTimeout(() => {
         window.removeEventListener('message', messageHandler)
@@ -216,6 +226,12 @@ export class SaveGameManager {
 
       // 监听来自 iframe 的响应
       const messageHandler = (event) => {
+        // 验证消息来源
+        if (event.origin !== targetOrigin) {
+          console.warn('[存档管理器] 收到来自未知来源的消息:', event.origin)
+          return
+        }
+
         if (event.data && event.data.type === 'candybox2-save-data-set') {
           clearTimeout(timeout)
           window.removeEventListener('message', messageHandler)
@@ -229,7 +245,7 @@ export class SaveGameManager {
       iframe.contentWindow.postMessage({
         type: 'candybox2-set-save-data',
         data: data
-      }, '*')
+      }, targetOrigin)
     })
   }
 
@@ -283,6 +299,8 @@ export class SaveGameManager {
         return
       }
 
+      const targetOrigin = window.location.origin
+
       // 设置超时
       const timeout = setTimeout(() => {
         resolve({ hasSave: false, error: '读取超时' })
@@ -290,6 +308,12 @@ export class SaveGameManager {
 
       // 监听来自 iframe 的响应
       const messageHandler = (event) => {
+        // 验证消息来源
+        if (event.origin !== targetOrigin) {
+          console.warn('[存档管理器] 收到来自未知来源的消息:', event.origin)
+          return
+        }
+
         if (event.data && event.data.type === 'candybox2-save-data') {
           clearTimeout(timeout)
           window.removeEventListener('message', messageHandler)
@@ -373,7 +397,7 @@ export class SaveGameManager {
       // 向 iframe 发送请求
       iframe.contentWindow.postMessage({
         type: 'candybox2-get-save-data'
-      }, '*')
+      }, targetOrigin)
     })
   }
 
