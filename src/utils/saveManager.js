@@ -415,6 +415,11 @@ export class SaveGameManager {
         iframeReady: iframe ? !!iframe.contentWindow : false
       })
 
+      // 验证输入参数
+      if (!gameId || typeof gameId !== 'string') {
+        throw new Error('无效的游戏ID')
+      }
+
       // 如果有可用的 iframe，优先从 iframe 读取（因为 iframe 内可能没有 uTools）
       if (iframe && iframe.contentWindow && gameId === 'candybox2') {
         console.log('[存档管理器] 从 iframe 读取存档（优先）')
@@ -428,6 +433,7 @@ export class SaveGameManager {
           }
         } catch (err) {
           console.error('[存档管理器] 从 iframe 读取失败:', err)
+          // 继续尝试从 uTools 数据库读取
         }
       }
 
@@ -446,6 +452,11 @@ export class SaveGameManager {
           }
         }
 
+        // 验证数据完整性
+        if (!Array.isArray(docs)) {
+          throw new Error('存档数据格式错误')
+        }
+
         // Candy Box 2 特殊处理：支持扁平的 slot1.xxx 结构
         if (gameId === 'candybox2') {
           console.log('[存档管理器] 尝试解析扁平结构的存档数据')
@@ -454,31 +465,45 @@ export class SaveGameManager {
           const slotMap = new Map() // slotNum -> { candies, lollipops, timestamp }
 
           for (const doc of docs) {
-            // 匹配 game_save_candybox2_slot1.xxx 格式
-            const slotMatch = doc._id.match(/slot(\d+)\.(.*)$/)
-            if (slotMatch) {
-              const slotNum = slotMatch[1]
-              const dataKey = slotMatch[2]
+            try {
+              // 匹配 game_save_candybox2_slot1.xxx 格式
+              const slotMatch = doc._id.match(/slot(\d+)\.(.*)$/)
+              if (slotMatch) {
+                const slotNum = slotMatch[1]
+                const dataKey = slotMatch[2]
 
-              if (!slotMap.has(slotNum)) {
-                slotMap.set(slotNum, {
-                  slot: slotNum,
-                  candies: 0,
-                  lollipops: 0,
-                  timestamp: doc.updatedAt || Date.now()
-                })
+                if (!slotMap.has(slotNum)) {
+                  slotMap.set(slotNum, {
+                    slot: slotNum,
+                    candies: 0,
+                    lollipops: 0,
+                    timestamp: doc.updatedAt || Date.now()
+                  })
+                }
+
+                const slotData = slotMap.get(slotNum)
+
+                // 提取关键数据（添加安全转换）
+                if (dataKey === 'gameCandiesCurrent' || dataKey === 'gameCandiesAccumulated') {
+                  const candies = parseInt(doc.data)
+                  if (!isNaN(candies)) {
+                    slotData.candies = candies
+                  }
+                } else if (dataKey === 'gameLollipopsCurrent' || dataKey === 'gameLollipopsAccumulated') {
+                  const lollipops = parseInt(doc.data)
+                  if (!isNaN(lollipops)) {
+                    slotData.lollipops = lollipops
+                  }
+                } else if (dataKey === 'saveDate' || dataKey === 'timestamp') {
+                  const timestamp = parseInt(doc.data)
+                  if (!isNaN(timestamp)) {
+                    slotData.timestamp = timestamp
+                  }
+                }
               }
-
-              const slotData = slotMap.get(slotNum)
-
-              // 提取关键数据
-              if (dataKey === 'gameCandiesCurrent' || dataKey === 'gameCandiesAccumulated') {
-                slotData.candies = parseInt(doc.data) || 0
-              } else if (dataKey === 'gameLollipopsCurrent' || dataKey === 'gameLollipopsAccumulated') {
-                slotData.lollipops = parseInt(doc.data) || 0
-              } else if (dataKey === 'saveDate' || dataKey === 'timestamp') {
-                slotData.timestamp = parseInt(doc.data) || slotData.timestamp
-              }
+            } catch (err) {
+              console.warn(`[存档管理器] 处理存档项失败: ${doc._id}`, err)
+              // 继续处理其他项
             }
           }
 
@@ -546,10 +571,10 @@ export class SaveGameManager {
         }
       }
     } catch (error) {
-      console.error('获取存档信息失败:', error)
+      console.error('[存档管理器] 获取存档信息失败:', error)
       return {
         hasSave: false,
-        error: error.message
+        error: `存档读取失败: ${error.message}`
       }
     }
   }

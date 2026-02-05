@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { saveManager } from '../utils/saveManager.js'
+import { analyticsTracker } from '../utils/analyticsTracker.js'
 
 const router = useRouter()
 
@@ -29,8 +30,36 @@ const saveInfo = ref({
 const showGameStartModal = ref(false)
 const selectedGame = ref(null)
 
+// 打赏弹窗
+const showDonateModal = ref(false)
+
+// 打开打赏弹窗
+const openDonateModal = () => {
+  showDonateModal.value = true
+
+  // 追踪打赏按钮点击
+  analyticsTracker.trackUserAction('donate_click', {
+    source: 'game_list',
+    timestamp: Date.now()
+  })
+}
+
 // 游戏列表配置
 const games = ref([
+  {
+    id: 'tetris',
+    name: '俄罗斯方块',
+    englishName: 'Tetris',
+    description: '经典消除游戏，挑战极限速度',
+    icon: '🧩',
+    path: '/tetris',
+    color: '#667eea',
+    category: 'puzzle',
+    tags: ['益智', '消除', '经典'],
+    difficulty: '中等',
+    players: '单人',
+    isVueComponent: true // 标记为Vue组件游戏
+  },
   {
     id: 'candybox2',
     name: '糖果盒子2',
@@ -85,10 +114,19 @@ const openGame = async (game) => {
 
   // 检查是否在 uTools 环境中
   if (!isUToolsEnv.value) {
-    console.error('当前不在 uTools 环境中')
-    alert('请在 uTools 中打开此插件以使用游戏功能')
+    console.warn('当前不在 uTools 环境中，游戏功能不可用')
+    // 界面上已有环境提示横幅，不需要额外弹窗
     return
   }
+
+  // 追踪游戏点击
+  analyticsTracker.trackUserAction('game_click', {
+    game: {
+      id: game.id,
+      name: game.name,
+      category: game.category
+    }
+  })
 
   // 保存选中的游戏
   selectedGame.value = game
@@ -101,9 +139,27 @@ const openGame = async (game) => {
   if (info.hasSave) {
     // 显示游戏启动确认弹窗
     showGameStartModal.value = true
+
+    // 追踪有存档的游戏打开
+    analyticsTracker.trackUserAction('game_open_with_save', {
+      game: {
+        id: game.id,
+        name: game.name
+      },
+      hasSave: true
+    })
   } else {
     // 没有存档，直接开始游戏
     launchGame(game)
+
+    // 追踪新游戏打开
+    analyticsTracker.trackUserAction('game_open_new', {
+      game: {
+        id: game.id,
+        name: game.name
+      },
+      hasSave: false
+    })
   }
 }
 
@@ -133,13 +189,55 @@ const continueGame = () => {
 
 // 实际启动游戏 - 使用路由跳转
 const launchGame = (game) => {
-  router.push(`/game/${game.id}`)
+  // 如果是 Vue 组件游戏，直接跳转到对应路由
+  if (game.isVueComponent) {
+    router.push(game.path)
+  } else {
+    // 否则使用 GameView 加载 iframe
+    router.push(`/game/${game.id}`)
+  }
 }
 
 // 选择分类
 const selectCategory = (categoryId) => {
   activeCategory.value = categoryId
+
+  // 追踪分类切换
+  analyticsTracker.trackUserAction('category_change', {
+    from: activeCategory.value,
+    to: categoryId
+  })
 }
+
+// 初始化
+onMounted(() => {
+  // 初始化埋点追踪器
+  analyticsTracker.init()
+
+  // 追踪列表页访问
+  analyticsTracker.trackPageView('game_list', {
+    totalGames: games.value.length,
+    categories: categories.value.map(c => c.id)
+  })
+})
+
+// 监听搜索查询变化
+watch(searchQuery, (newValue, oldValue) => {
+  if (newValue !== oldValue && newValue.trim()) {
+    // 追踪搜索行为（使用防抖，避免频繁触发）
+    analyticsTracker.trackUserAction('search', {
+      query: newValue.trim(),
+      resultCount: filteredGames.value.length
+    })
+  }
+})
+
+// 清理
+onUnmounted(() => {
+  // 停止自动同步并触发一次同步
+  analyticsTracker.stopAutoSync()
+  analyticsTracker.sync()
+})
 </script>
 
 <template>
@@ -172,8 +270,30 @@ const selectCategory = (categoryId) => {
             {{ stats.comingSoon }} 款即将推出
           </span>
         </div>
+        <button class="donate-btn" @click="openDonateModal" title="打赏支持">
+          <span class="donate-icon">👍</span>
+        </button>
       </div>
     </div>
+
+    <!-- 打赏弹窗 -->
+    <transition name="fade">
+      <div v-if="showDonateModal" class="donate-overlay" @click="showDonateModal = false">
+        <div class="donate-modal" @click.stop>
+          <div class="donate-header">
+            <h3>💝 感谢支持</h3>
+            <button class="close-btn" @click="showDonateModal = false">✕</button>
+          </div>
+          <div class="donate-content">
+            <p class="donate-text">如果您喜欢这个小游戏集合，欢迎打赏支持～</p>
+            <div class="donate-image-container">
+              <img src="/zs.png" alt="打赏二维码" class="donate-qr-code" />
+            </div>
+            <p class="donate-hint">微信扫码即可打赏</p>
+          </div>
+        </div>
+      </div>
+    </transition>
 
     <!-- 游戏启动确认弹窗 -->
     <div v-if="showGameStartModal" class="game-start-overlay" @click="showGameStartModal = false">
@@ -986,5 +1106,153 @@ const selectCategory = (categoryId) => {
   .btn-desc {
     font-size: 12px;
   }
+
+  .donate-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .donate-icon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* 打赏按钮 */
+.donate-btn {
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.donate-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 107, 107, 0.5);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+.donate-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+/* 打赏弹窗 */
+.donate-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.donate-modal {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.donate-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.donate-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.donate-header .close-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.donate-header .close-btn:hover {
+  background: rgba(255, 107, 107, 0.2);
+  color: #ff6b6b;
+}
+
+.donate-content {
+  padding: 28px;
+  text-align: center;
+}
+
+.donate-text {
+  margin: 0 0 20px;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+}
+
+.donate-image-container {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.donate-qr-code {
+  max-width: 100%;
+  width: 240px;
+  height: auto;
+  border-radius: 8px;
+}
+
+.donate-hint {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* 淡入淡出动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

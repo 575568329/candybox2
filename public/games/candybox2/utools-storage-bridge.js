@@ -21,6 +21,44 @@
   const GAME_ID = 'candybox2';
   const SAVE_PREFIX = 'game_save_' + GAME_ID + '_';
 
+  // 数据验证配置
+  const DATA_VALIDATION = {
+    MAX_VALUE_SIZE: 100000, // 单个值最大 100KB
+    MAX_KEY_LENGTH: 1000, // 键名最大长度
+    ALLOWED_TYPES: ['string', 'number', 'boolean'] // 允许的数据类型
+  };
+
+  /**
+   * 验证数据是否安全
+   */
+  function validateData(key, value) {
+    // 验证键名
+    if (typeof key !== 'string' || key.length > DATA_VALIDATION.MAX_KEY_LENGTH) {
+      console.warn(`[存档桥接器] 键名验证失败: ${key}`);
+      return false;
+    }
+
+    // 验证值
+    if (value === null || value === undefined) {
+      return true; // null/undefined 是允许的
+    }
+
+    // 验证值类型
+    const valueType = typeof value;
+    if (!DATA_VALIDATION.ALLOWED_TYPES.includes(valueType)) {
+      console.warn(`[存档桥接器] 值类型验证失败: ${key}, 类型: ${valueType}`);
+      return false;
+    }
+
+    // 验证字符串大小
+    if (valueType === 'string' && value.length > DATA_VALIDATION.MAX_VALUE_SIZE) {
+      console.warn(`[存档桥接器] 值大小验证失败: ${key}, 大小: ${value.length}`);
+      return false;
+    }
+
+    return true;
+  }
+
   // 原生 localStorage
   const originalLocalStorage = {
     getItem: localStorage.getItem.bind(localStorage),
@@ -41,8 +79,14 @@
         window.utools.db.promises.get(docId)
           .then(data => {
             if (data && data.data) {
-              console.log(`[存档桥接器] ✓ 从 uTools 加载存档: ${key}`);
-              resolve(data.data);
+              // 验证数据
+              if (validateData(key, data.data)) {
+                console.log(`[存档桥接器] ✓ 从 uTools 加载存档: ${key}`);
+                resolve(data.data);
+              } else {
+                console.error(`[存档桥接器] ✗ 数据验证失败，拒绝加载: ${key}`);
+                resolve(null);
+              }
             } else {
               resolve(null);
             }
@@ -57,8 +101,14 @@
         try {
           const data = window.utools.db.get(docId);
           if (data && data.data) {
-            console.log(`[存档桥接器] ✓ 从 uTools 加载存档: ${key}`);
-            resolve(data.data);
+            // 验证数据
+            if (validateData(key, data.data)) {
+              console.log(`[存档桥接器] ✓ 从 uTools 加载存档: ${key}`);
+              resolve(data.data);
+            } else {
+              console.error(`[存档桥接器] ✗ 数据验证失败，拒绝加载: ${key}`);
+              resolve(null);
+            }
           } else {
             resolve(null);
           }
@@ -187,6 +237,12 @@
 
     setItem: function(key, value) {
       try {
+        // 验证数据
+        if (!validateData(key, value)) {
+          console.error(`[存档桥接器] ✗ 数据验证失败，拒绝保存: ${key}`);
+          throw new Error(`数据验证失败: ${key}`);
+        }
+
         // 立即保存到 localStorage（保证性能）
         const oldValue = originalLocalStorage.getItem(key);
         originalLocalStorage.setItem(key, value);
@@ -207,6 +263,7 @@
         });
       } catch (err) {
         console.error('[存档桥接器] ✗ 保存存档失败，使用原生 localStorage:', err);
+        // 即使验证失败也保存到 localStorage 作为降级方案
         originalLocalStorage.setItem(key, value);
       }
     },
@@ -295,7 +352,7 @@
         type: 'candybox2-save-updated',
         gameId: GAME_ID,
         timestamp: Date.now()
-      }, '*');
+      }, window.location.origin);
       console.log('[存档桥接器] ✓ 存档更新通知已发送到父窗口');
     }
   }
@@ -339,6 +396,13 @@
         const value = originalLocalStorage.getItem(key);
         if (key && value !== null && value !== undefined) {
           try {
+            // 验证数据
+            if (!validateData(key, value)) {
+              console.warn(`[存档桥接器] ⚠ 跳过验证失败的数据: ${key}`);
+              failCount++;
+              continue;
+            }
+
             const success = await saveToUTools(key, value);
             if (success) {
               successCount++;
@@ -385,9 +449,15 @@
         let restoreCount = 0;
         docs.forEach(doc => {
           const key = doc._id.replace(SAVE_PREFIX, '');
-          originalLocalStorage.setItem(key, doc.data);
-          console.log(`[存档桥接器] ✓ 恢复存档: ${key}`);
-          restoreCount++;
+
+          // 验证数据
+          if (validateData(key, doc.data)) {
+            originalLocalStorage.setItem(key, doc.data);
+            console.log(`[存档桥接器] ✓ 恢复存档: ${key}`);
+            restoreCount++;
+          } else {
+            console.warn(`[存档桥接器] ⚠ 跳过无效存档: ${key}`);
+          }
         });
 
         if (restoreCount > 0) {
@@ -418,8 +488,8 @@
     }
   });
 
-  // 定期自动保存（每15秒）
-  console.log('[存档桥接器] 设置定期自动保存（每15秒）');
+  // 定期自动保存（每60秒 - 降低频率以优化性能）
+  console.log('[存档桥接器] 设置定期自动保存（每60秒）');
   setInterval(() => {
     console.log('[存档桥接器] ========== 执行定期自动保存 ==========');
     window.CandyBox2Storage.forceSave().then(result => {
@@ -427,11 +497,13 @@
     }).catch(err => {
       console.error('[存档桥接器] 定期保存失败:', err);
     });
-  }, 15000);
+  }, 60000); // 从15秒改为60秒
 
   // 智能保存：监听存档键的变化，在游戏保存后触发完整同步
   let saveSyncTimer = null;
-  const SYNC_DELAY = 2000; // 游戏保存后2秒触发完整同步
+  const SYNC_DELAY = 3000; // 游戏保存后3秒触发完整同步（增加延迟以合并多次保存）
+  let lastSyncTime = 0;
+  const MIN_SYNC_INTERVAL = 5000; // 两次同步最少间隔5秒
 
   // 监听特定的存档键
   const saveKeys = ['save', 'slot', 'gameCandies', 'gameLollipops'];
@@ -453,14 +525,25 @@
         clearTimeout(saveSyncTimer);
       }
 
+      // 检查距离上次同步的时间，避免过于频繁
+      const now = Date.now();
+      const timeSinceLastSync = now - lastSyncTime;
+
       // 设置新的定时器
       saveSyncTimer = setTimeout(() => {
-        console.log('[存档桥接器] 触发完整存档同步...');
-        window.CandyBox2Storage.forceSave().then(result => {
-          console.log('[存档桥接器] ✓ 完整同步完成:', result);
-        }).catch(err => {
-          console.error('[存档桥接器] ✗ 完整同步失败:', err);
-        });
+        // 再次检查时间间隔
+        if (Date.now() - lastSyncTime >= MIN_SYNC_INTERVAL) {
+          console.log('[存档桥接器] 触发完整存档同步...');
+          lastSyncTime = Date.now();
+
+          window.CandyBox2Storage.forceSave().then(result => {
+            console.log('[存档桥接器] ✓ 完整同步完成:', result);
+          }).catch(err => {
+            console.error('[存档桥接器] ✗ 完整同步失败:', err);
+          });
+        } else {
+          console.log('[存档桥接器] 跳过同步，距离上次同步时间过短');
+        }
       }, SYNC_DELAY);
     }
 
@@ -475,7 +558,108 @@
     // 仅处理来自同源的请求
     if (event.source !== window.parent) return;
 
-    if (event.data && event.data.type === 'candybox2-get-save-data') {
+    if (event.data && event.data.type === 'candybox2-request-save') {
+      console.log('[存档桥接器] 收到保存请求，触发游戏保存功能...');
+
+      // 定义尝试保存的函数
+      const attemptSave = (attemptCount = 0, maxAttempts = 10) => {
+        try {
+          console.log(`[存档桥接器] 尝试保存 (${attemptCount + 1}/${maxAttempts})...`);
+
+          // 检查游戏保存系统是否可用
+          const hasSaving = typeof window.Saving !== 'undefined';
+          const hasSaveFunc = hasSaving && typeof window.Saving.save === 'function';
+
+          console.log('[存档桥接器] 检查游戏系统:', {
+            hasSaving,
+            hasSaveFunc,
+            hasGetGame: typeof window.getGame === 'function',
+            hasMain: typeof window.Main !== 'undefined'
+          });
+
+          if (!hasSaving || !hasSaveFunc) {
+            // 游戏系统未就绪，等待后重试
+            if (attemptCount < maxAttempts - 1) {
+              console.warn('[存档桥接器] 游戏保存系统未就绪，1秒后重试...');
+              setTimeout(() => attemptSave(attemptCount + 1, maxAttempts), 1000);
+              return;
+            } else {
+              console.error('[存档桥接器] 达到最大重试次数，保存失败');
+              window.parent.postMessage({
+                type: 'candybox2-save-completed',
+                success: false,
+                error: '游戏保存系统未就绪'
+              }, window.location.origin);
+              return;
+            }
+          }
+
+          // 获取游戏实例
+          const game = typeof window.getGame === 'function' ? window.getGame() :
+                      (typeof window.Main !== 'undefined' && typeof window.Main.getGame === 'function')
+                        ? window.Main.getGame() : null;
+
+          console.log('[存档桥接器] 游戏实例:', game);
+
+          if (!game) {
+            // 游戏实例未找到，等待后重试
+            if (attemptCount < maxAttempts - 1) {
+              console.warn('[存档桥接器] 游戏实例未找到，1秒后重试...');
+              setTimeout(() => attemptSave(attemptCount + 1, maxAttempts), 1000);
+              return;
+            } else {
+              console.error('[存档桥接器] 达到最大重试次数，游戏实例仍未找到');
+              window.parent.postMessage({
+                type: 'candybox2-save-completed',
+                success: false,
+                error: '游戏实例未找到'
+              }, window.location.origin);
+              return;
+            }
+          }
+
+          // 获取当前槽位（从 localStorage 或使用默认槽位1）
+          let currentSlot = 1;
+          try {
+            currentSlot = window.Saving.loadNumber ? window.Saving.loadNumber('currentSlot') || 1 : 1;
+          } catch (e) {
+            console.warn('[存档桥接器] 无法读取 currentSlot，使用默认槽位 1');
+          }
+
+          const slotName = 'slot' + currentSlot;
+
+          console.log('[存档桥接器] 开始保存游戏到槽位:', slotName);
+
+          // 调用游戏的保存函数
+          // MainLoadingType.LOCAL = 0
+          window.Saving.save(game, 0, slotName);
+
+          console.log('[存档桥接器] ✓ 游戏已保存到槽位:', slotName);
+
+          // 等待一小段时间确保保存完成
+          setTimeout(() => {
+            // 发送保存成功响应
+            window.parent.postMessage({
+              type: 'candybox2-save-completed',
+              success: true,
+              slotNum: currentSlot,
+              slotName: slotName
+            }, window.location.origin);
+          }, 200);
+
+        } catch (error) {
+          console.error('[存档桥接器] 保存失败:', error);
+          window.parent.postMessage({
+            type: 'candybox2-save-completed',
+            success: false,
+            error: error.message
+          }, window.location.origin);
+        }
+      };
+
+      // 开始尝试保存
+      attemptSave();
+    } else if (event.data && event.data.type === 'candybox2-get-save-data') {
       console.log('[存档桥接器] 收到存档请求，收集 localStorage 数据...');
 
       // 收集所有 localStorage 数据（保持原始格式）
@@ -495,7 +679,7 @@
       window.parent.postMessage({
         type: 'candybox2-save-data',
         data: saveData
-      }, '*');
+      }, window.location.origin);
     } else if (event.data && event.data.type === 'candybox2-set-save-data') {
       console.log('[存档桥接器] 收到导入存档请求，写入 localStorage...');
 
@@ -505,7 +689,7 @@
         window.parent.postMessage({
           type: 'candybox2-save-data-set',
           success: false
-        }, '*');
+        }, window.location.origin);
         return;
       }
 
@@ -515,10 +699,20 @@
 
         // 写入新的存档数据（保持原始值，不进行 JSON.stringify）
         let writeCount = 0;
+        let skipCount = 0;
         for (const [key, value] of Object.entries(data)) {
-          // 直接保存原始值（游戏中所有值都是字符串）
-          localStorage.setItem(key, value);
-          writeCount++;
+          // 验证数据
+          if (validateData(key, value)) {
+            localStorage.setItem(key, value);
+            writeCount++;
+          } else {
+            console.warn(`[存档桥接器] ⚠ 跳过无效数据: ${key}`);
+            skipCount++;
+          }
+        }
+
+        if (skipCount > 0) {
+          console.warn(`[存档桥接器] ⚠ 跳过了 ${skipCount} 个无效数据项`);
         }
 
         console.log(`[存档桥接器] ✓ 成功写入 ${writeCount} 个存档项`);
@@ -528,14 +722,14 @@
           type: 'candybox2-save-data-set',
           success: true,
           count: writeCount
-        }, '*');
+        }, window.location.origin);
       } catch (error) {
         console.error('[存档桥接器] 写入存档失败:', error);
         window.parent.postMessage({
           type: 'candybox2-save-data-set',
           success: false,
           error: error.message
-        }, '*');
+        }, window.location.origin);
       }
     } else if (event.data && event.data.type === 'candybox2-save-to-slot') {
       console.log('[存档桥接器] 收到保存到槽位请求:', event.data.slotNum);
@@ -614,14 +808,14 @@
           type: 'candybox2-saved',
           success: true,
           slotNum: slotNum
-        }, '*');
+        }, window.location.origin);
       } catch (error) {
         console.error('[存档桥接器] 保存到槽位失败:', error);
         window.parent.postMessage({
           type: 'candybox2-saved',
           success: false,
           error: error.message
-        }, '*');
+        }, window.location.origin);
       }
     } else if (event.data && event.data.type === 'candybox2-load-slot') {
       console.log('[存档桥接器] 收到加载槽位请求:', event.data.slotNum);
@@ -704,14 +898,14 @@
           success: true,
           slotNum: slotNum,
           count: deleteCount
-        }, '*');
+        }, window.location.origin);
       } catch (error) {
         console.error('[存档桥接器] 删除槽位失败:', error);
         window.parent.postMessage({
           type: 'candybox2-slot-deleted',
           success: false,
           error: error.message
-        }, '*');
+        }, window.location.origin);
       }
     }
   });

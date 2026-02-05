@@ -2,6 +2,8 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { saveManager } from '../utils/saveManager'
+import { analyticsTracker } from '../utils/analyticsTracker'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -23,6 +25,14 @@ const saveMessage = ref({
   type: 'success',
   text: ''
 })
+
+// 返回确认弹窗
+const showExitConfirm = ref(false)
+
+// 自定义确认弹窗
+const showClearSaveConfirm = ref(false)
+const showDeleteSlotConfirm = ref(false)
+const slotToDelete = ref(null)
 
 const lastUpdateTime = ref(null)
 
@@ -136,21 +146,36 @@ const showMessage = (type, text) => {
 }
 
 // 清除存档
-const clearSave = async () => {
+const showClearSaveDialog = () => {
   if (!game.value) return
+  showClearSaveConfirm.value = true
+}
 
-  if (!confirm(`确定要清除《${game.value.name}》的所有存档吗?此操作不可恢复!`)) {
-    return
-  }
+const handleClearSaveConfirmed = async () => {
+  if (!game.value) return
 
   try {
     showMessage('success', '正在清除存档...')
+
+    // 追踪存档操作
+    analyticsTracker.trackSaveOperation('clear_all', game.value.id, {
+      confirm: true
+    })
 
     // 使用 saveManager 清除 uTools 数据库中的存档
     const result = await saveManager.clearSave(game.value.id)
 
     if (result.success) {
       showMessage('success', result.message || '存档已清除')
+
+      // 追踪操作结果
+      analyticsTracker.trackUserAction('save_cleared', {
+        game: {
+          id: game.value.id,
+          name: game.value.name
+        },
+        count: result.count
+      })
 
       // 刷新游戏，重新加载 iframe
       if (iframeRef.value) {
@@ -169,12 +194,22 @@ const clearSave = async () => {
   }
 }
 
+const clearSave = async () => {
+  // 使用自定义弹窗
+  showClearSaveDialog()
+}
+
 // 读取指定存档槽位到游戏
 const loadSlot = async (slotNum) => {
   if (!game.value || !iframeRef.value) return
 
   try {
     showMessage('success', `正在读取存档槽位 ${slotNum}...`)
+
+    // 追踪存档操作
+    analyticsTracker.trackSaveOperation('load_slot', game.value.id, {
+      slotNum: slotNum
+    })
 
     // 游戏通过URL参数加载存档，需要刷新iframe并添加?slot=N参数
     const currentUrl = new URL(iframeRef.value.src)
@@ -187,6 +222,15 @@ const loadSlot = async (slotNum) => {
     setTimeout(() => {
       loadSaveInfo()
       showMessage('success', `存档槽位 ${slotNum} 已加载`)
+
+      // 追踪操作成功
+      analyticsTracker.trackUserAction('save_loaded', {
+        game: {
+          id: game.value.id,
+          name: game.value.name
+        },
+        slotNum: slotNum
+      })
     }, 2000)
   } catch (error) {
     showMessage('error', `读取存档失败: ${error.message}`)
@@ -194,15 +238,23 @@ const loadSlot = async (slotNum) => {
 }
 
 // 删除指定存档槽位
-const deleteSlot = async (slotNum) => {
+const showDeleteSlotDialog = (slotNum) => {
   if (!game.value || !iframeRef.value) return
+  slotToDelete.value = slotNum
+  showDeleteSlotConfirm.value = true
+}
 
-  if (!confirm(`确定要删除存档槽位 ${slotNum} 吗?此操作不可恢复!`)) {
-    return
-  }
+const handleDeleteSlotConfirmed = async () => {
+  const slotNum = slotToDelete.value
+  if (!game.value || !iframeRef.value || !slotNum) return
 
   try {
     showMessage('success', `正在删除存档槽位 ${slotNum}...`)
+
+    // 追踪存档操作
+    analyticsTracker.trackSaveOperation('delete_slot', game.value.id, {
+      slotNum: slotNum
+    })
 
     // 向 iframe 发送消息，要求删除指定槽位
     const result = await new Promise((resolve) => {
@@ -236,12 +288,28 @@ const deleteSlot = async (slotNum) => {
     if (result.success) {
       showMessage('success', `存档槽位 ${slotNum} 已删除`)
       await loadSaveInfo()
+
+      // 追踪操作成功
+      analyticsTracker.trackUserAction('save_deleted', {
+        game: {
+          id: game.value.id,
+          name: game.value.name
+        },
+        slotNum: slotNum
+      })
     } else {
       showMessage('error', `删除存档槽位 ${slotNum} 失败`)
     }
   } catch (error) {
     showMessage('error', `删除存档失败: ${error.message}`)
+  } finally {
+    slotToDelete.value = null
   }
+}
+
+const deleteSlot = (slotNum) => {
+  // 使用自定义弹窗
+  showDeleteSlotDialog(slotNum)
 }
 
 // 格式化存档时间
@@ -259,7 +327,19 @@ const formatSaveTime = (timestamp) => {
 
 // 返回游戏列表
 const goBack = () => {
+  // 显示自定义确认弹窗
+  showExitConfirm.value = true
+}
+
+// 确认退出
+const confirmExit = () => {
+  showExitConfirm.value = false
   router.push('/')
+}
+
+// 取消退出
+const cancelExit = () => {
+  showExitConfirm.value = false
 }
 
 // iframe 加载完成
@@ -280,9 +360,26 @@ const onIframeLoad = () => {
     try {
       const result = await loadSaveInfo()
 
+      // 检查是否有错误
+      if (result?.error) {
+        console.warn(`[GameView] 存档读取遇到错误: ${result.error}`)
+
+        // 对于致命错误（如 iframe 不可用），不再重试
+        if (result.error === 'iframe 不可用' || result.error.includes('读取超时')) {
+          console.log('[GameView] 检测到致命错误，停止重试')
+          return
+        }
+      }
+
       // 如果成功读取到存档或确定没有存档，停止重试
-      if (saveInfo.value.hasSave || result?.error !== 'iframe 不可用') {
-        console.log('[GameView] ✓ 存档读取成功或确认无存档')
+      if (saveInfo.value.hasSave) {
+        console.log('[GameView] ✓ 存档读取成功')
+        return
+      }
+
+      // 确认没有存档
+      if (result?.hasSave === false) {
+        console.log('[GameView] ✓ 确认无存档')
         return
       }
 
@@ -291,13 +388,18 @@ const onIframeLoad = () => {
         setTimeout(attemptLoadSave, retryDelay)
       } else {
         console.log('[GameView] 已达到最大重试次数，停止尝试')
+        // 显示友好提示
+        showMessage('warning', '存档读取遇到问题，游戏仍可正常进行')
       }
     } catch (error) {
-      console.error('[GameView] 存档读取失败:', error)
+      console.error('[GameView] 存档读取异常:', error)
 
-      // 发生错误时也继续重试几次
+      // 发生异常时也继续重试几次
       if (retryCount < maxRetries) {
         setTimeout(attemptLoadSave, retryDelay)
+      } else {
+        console.error('[GameView] 达到最大重试次数，放弃读取存档')
+        showMessage('warning', '存档读取失败，但游戏仍可正常进行')
       }
     }
   }
@@ -351,6 +453,21 @@ onMounted(async () => {
 
   game.value = games[gameId]
 
+  // 初始化埋点追踪器
+  analyticsTracker.init()
+
+  // 追踪游戏页面访问
+  analyticsTracker.trackPageView('game_page', {
+    game: {
+      id: game.value.id,
+      name: game.value.name,
+      category: game.value.category
+    }
+  })
+
+  // 开始游戏会话追踪
+  analyticsTracker.startGameSession(game.value)
+
   // 等待 iframe 加载后，使用智能重试机制读取存档
   // 这里不需要手动调用 loadSaveInfo，因为在 onIframeLoad 中已经处理
 
@@ -371,6 +488,11 @@ onMounted(async () => {
     if (event.data && event.data.type === 'candybox2-save-updated') {
       console.log('[GameView] 收到存档更新通知，立即刷新存档信息')
       refreshSaveInfo()
+
+      // 追踪存档操作
+      analyticsTracker.trackSaveOperation('auto_save', game.value.id, {
+        timestamp: new Date().toISOString()
+      })
     }
   }
   window.addEventListener('message', messageHandler)
@@ -386,21 +508,41 @@ onUnmounted(() => {
   // 清理定时器
   if (saveRefreshTimer) {
     clearInterval(saveRefreshTimer)
+    saveRefreshTimer = null
     console.log('[存档同步] 已停止存档自动同步')
   }
 
   // 清理导航栏自动隐藏定时器
   if (hideTimer) {
     clearTimeout(hideTimer)
+    hideTimer = null
   }
 
-  // 清理事件监听器
+  // 清理事件监听器（确保只移除一次）
   if (messageHandler) {
     window.removeEventListener('message', messageHandler)
     messageHandler = null
   }
 
+  // 确保移除鼠标移动监听器
   document.removeEventListener('mousemove', handleMouseMove)
+
+  // 结束游戏会话追踪
+  if (game.value) {
+    analyticsTracker.endGameSession()
+    analyticsTracker.trackPageView('game_exit', {
+      game: {
+        id: game.value.id,
+        name: game.value.name
+      }
+    })
+  }
+
+  // 停止自动同步并触发一次同步
+  analyticsTracker.stopAutoSync()
+  analyticsTracker.sync()
+
+  console.log('[GameView] 组件已卸载，所有资源已清理')
 })
 </script>
 
@@ -431,9 +573,9 @@ onUnmounted(() => {
         <button
           class="icon-btn"
           @click="showSaveManager = !showSaveManager"
-          title="存档管理"
+          title="读档管理"
         >
-          💾 存档
+          📖 读档
         </button>
       </div>
     </div>
@@ -466,6 +608,31 @@ onUnmounted(() => {
         allowfullscreen
       ></iframe>
     </div>
+
+    <!-- 退出确认弹窗 -->
+    <transition name="fade">
+      <div v-if="showExitConfirm" class="confirm-overlay" @click="cancelExit">
+        <div class="confirm-dialog" @click.stop>
+          <div class="confirm-header">
+            <div class="confirm-icon">🚪</div>
+            <h3>退出游戏</h3>
+          </div>
+          <div class="confirm-body">
+            <p>退出前是否已在游戏内保存进度？</p>
+          </div>
+          <div class="confirm-footer">
+            <button class="confirm-btn cancel" @click="cancelExit">
+              <span class="btn-icon">↩</span>
+              <span>取消</span>
+            </button>
+            <button class="confirm-btn primary" @click="confirmExit">
+              <span class="btn-icon">✓</span>
+              <span>退出游戏</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
 
     <!-- 存档管理面板 -->
     <transition name="slide">
@@ -552,6 +719,32 @@ onUnmounted(() => {
         </div>
       </div>
     </transition>
+
+    <!-- 清除存档确认弹窗 -->
+    <ConfirmDialog
+      v-model:show="showClearSaveConfirm"
+      title="清除所有存档"
+      :message="`确定要清除《${game?.name}》的所有存档吗？此操作不可恢复！`"
+      confirm-text="确认清除"
+      cancel-text="取消"
+      type="danger"
+      icon="🗑️"
+      @confirm="handleClearSaveConfirmed"
+      @cancel="showClearSaveConfirm = false"
+    />
+
+    <!-- 删除存档槽位确认弹窗 -->
+    <ConfirmDialog
+      v-model:show="showDeleteSlotConfirm"
+      title="删除存档槽位"
+      :message="`确定要删除存档槽位 ${slotToDelete} 吗？此操作不可恢复！`"
+      confirm-text="确认删除"
+      cancel-text="取消"
+      type="danger"
+      icon="🗑️"
+      @confirm="handleDeleteSlotConfirmed"
+      @cancel="showDeleteSlotConfirm = false; slotToDelete = null"
+    />
   </div>
 </template>
 
@@ -1113,6 +1306,135 @@ onUnmounted(() => {
   background: rgba(244, 67, 54, 0.15);
   border: 1px solid rgba(244, 67, 54, 0.3);
   color: #f44336;
+}
+
+/* 退出确认弹窗 */
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.confirm-dialog {
+  background: linear-gradient(135deg, #1e1e32 0%, #1a1a2e 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+  min-width: 400px;
+  max-width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.confirm-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.confirm-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.confirm-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: white;
+}
+
+.confirm-body {
+  text-align: center;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.confirm-body p {
+  margin: 0;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+}
+
+.confirm-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.confirm-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+  justify-content: center;
+}
+
+.confirm-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.confirm-btn.primary {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+}
+
+.confirm-btn.primary:hover {
+  background: rgba(76, 175, 80, 0.25);
+  border-color: rgba(76, 175, 80, 0.4);
+}
+
+.confirm-btn.secondary {
+  background: rgba(255, 107, 107, 0.15);
+  border-color: rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+.confirm-btn.secondary:hover {
+  background: rgba(255, 107, 107, 0.25);
+  border-color: rgba(255, 107, 107, 0.4);
+}
+
+.confirm-btn.cancel {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.confirm-btn .btn-icon {
+  font-size: 16px;
 }
 
 /* 动画 */
