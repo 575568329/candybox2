@@ -1,6 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import GameList from '../GameList/index.vue'
-import GameView from '../views/GameView.vue'
 import ADarkRoomView from '../views/ADarkRoomView.vue'
 import TetrisGame from '../components/TetrisGame.vue'
 
@@ -9,12 +8,6 @@ const routes = [
     path: '/',
     name: 'Home',
     component: GameList
-  },
-  {
-    path: '/game/:id',
-    name: 'Game',
-    component: GameView,
-    props: true
   },
   {
     path: '/adarkroom',

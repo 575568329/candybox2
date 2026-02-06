@@ -5,7 +5,8 @@
 ## 功能特性
 
 - 🎮 游戏选择界面：美观的游戏列表展示，支持分类筛选和搜索
-- 🍬 Candy Box 2：经典的文字RPG冒险游戏
+- 🧩 俄罗斯方块：经典消除游戏，挑战极限速度
+- 🏚️ 小黑屋：极简主义文字冒险游戏
 - 🚀 一键启动：点击即可使用 uTools 内置浏览器打开游戏
 - 📱 响应式设计：适配不同屏幕尺寸
 - ✅ 环境检测：自动检测 uTools 环境，非 uTools 环境显示友好提示
@@ -16,10 +17,12 @@
 小游戏/
 ├── src/
 │   ├── GameList/         # 游戏列表组件
-│   ├── candybox2/        # Candy Box 2 游戏文件
+│   ├── views/            # 游戏视图组件
+│   ├── utils/            # 工具函数
 │   ├── App.vue           # 主应用组件
 │   └── main.js           # 入口文件
 ├── public/
+│   ├── games/            # 游戏文件
 │   ├── plugin.json       # uTools 插件配置
 │   └── logo.png          # 插件图标
 └── package.json
@@ -60,16 +63,16 @@ npm run dev
 
 #### 方式二：直接启动
 
-1. 在 uTools 中输入 "糖果盒子2" 或 "candybox2"
+1. 在 uTools 中输入 "俄罗斯方块"、"小黑屋" 等游戏名称
 2. 游戏会直接在 uTools 内置浏览器中打开
 
 ## 添加新游戏
 
 ### 1. 准备游戏文件
 
-将游戏文件放在 `src/games/` 目录下，例如：
+将游戏文件放在 `public/games/` 目录下，例如：
 ```
-src/games/mygame/index.html
+public/games/mygame/index.html
 ```
 
 ### 2. 更新游戏列表
@@ -82,8 +85,12 @@ src/games/mygame/index.html
   name: '我的游戏',
   description: '游戏描述',
   icon: '🎮',
-  path: './src/games/mygame/index.html',
-  color: '#4ecdc4'
+  path: '/games/mygame/index.html',
+  color: '#4ecdc4',
+  category: 'puzzle',
+  tags: ['益智', '休闲'],
+  difficulty: '简单',
+  players: '单人'
 }
 ```
 

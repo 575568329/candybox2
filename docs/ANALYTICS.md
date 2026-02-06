@@ -62,15 +62,15 @@
       "t": "gs",
       "ts": 1736942400000,
       "d": {
-        "g": "candybox2",
-        "n": "糖果盒子2"
+        "g": "tetris",
+        "n": "俄罗斯方块"
       }
     },
     {
       "t": "ge",
       "ts": 1736942700000,
       "d": {
-        "g": "candybox2",
+        "g": "tetris",
         "d": 300000,
         "sv": true,
         "so": 2
@@ -81,14 +81,14 @@
       "ts": 1736943000000,
       "d": {
         "gc": {
-          "candybox2": 5,
-          "tetris": 3
+          "tetris": 5,
+          "adarkroom": 3
         },
         "cc": {
-          "rpg": 8,
+          "rpg": 3,
           "puzzle": 5
         },
-        "sc": 12
+        "sc": 8
       }
     }
   ]
@@ -165,10 +165,10 @@
   "timestamp": "2025-01-15T10:30:00.000Z",
   "data": {
     "game": {
-      "id": "candybox2",
-      "name": "糖果盒子2",
-      "category": "rpg",
-      "tags": ["RPG", "文字", "冒险"]
+      "id": "tetris",
+      "name": "俄罗斯方块",
+      "category": "puzzle",
+      "tags": ["益智", "消除", "经典"]
     }
   },
   "system": {
@@ -186,7 +186,7 @@
   "t": "gs",
   "ts": 1736942400000,
   "d": {
-    "g": "candybox2",
+    "g": "tetris",
     "n": "糖果盒子2"
   }
 }

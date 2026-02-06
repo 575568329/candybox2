@@ -1,6 +1,6 @@
 {
   "pluginName": "小游戏集合",
-  "description": "精选小游戏合集，支持存档功能，包括俄罗斯方块、糖果盒子2等多款经典游戏",
+  "description": "精选小游戏合集，支持存档功能，包括俄罗斯方块、小黑屋等多款经典游戏",
   "main": "index.html",
   "logo": "logo.png",
   "version": "2.0.1",
@@ -28,17 +28,6 @@
         "tetris",
         "方块",
         "消除"
-      ]
-    },
-    {
-      "code": "candybox2",
-      "explain": "直接打开糖果盒子2游戏",
-      "cmds": [
-        "糖果盒子2",
-        "candybox2",
-        "糖果",
-        "candy",
-        "文字rpg"
       ]
     },
     {

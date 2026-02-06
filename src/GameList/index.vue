@@ -21,9 +21,7 @@ const searchQuery = ref('')
 // 存档信息
 const saveInfo = ref({
   hasSave: false,
-  count: 0,
-  candy: 0,
-  lollipops: 0
+  count: 0
 })
 
 // 游戏启动确认弹窗
@@ -59,19 +57,6 @@ const games = ref([
     difficulty: '中等',
     players: '单人',
     isVueComponent: true // 标记为Vue组件游戏
-  },
-  {
-    id: 'candybox2',
-    name: '糖果盒子2',
-    englishName: 'Candy Box 2',
-    description: '文字RPG冒险，从收集糖果开始',
-    icon: '🍬',
-    path: '/games/candybox2/index.html',
-    color: '#ff6b6b',
-    category: 'rpg',
-    tags: ['RPG', '文字', '冒险'],
-    difficulty: '中等',
-    players: '单人'
   },
   {
     id: 'adarkroom',
@@ -203,16 +188,8 @@ const continueGame = () => {
 
 // 实际启动游戏 - 使用路由跳转
 const launchGame = (game) => {
-  // 如果是 Vue 组件游戏，直接跳转到对应路由
-  if (game.isVueComponent) {
-    router.push(game.path)
-  } else if (game.id === 'adarkroom') {
-    // 小黑屋使用独立组件
-    router.push('/adarkroom')
-  } else {
-    // 否则使用 GameView 加载 iframe
-    router.push(`/game/${game.id}`)
-  }
+  // 直接使用游戏配置中的 path 路由
+  router.push(game.path)
 }
 
 // 选择分类
@@ -327,21 +304,8 @@ onUnmounted(() => {
               <span class="preview-icon">💾</span>
               <span class="preview-title">发现现有存档</span>
             </div>
-            <div class="preview-stats">
-              <div class="stat-card">
-                <span class="stat-icon">🍬</span>
-                <div class="stat-info">
-                  <span class="stat-label">糖果</span>
-                  <span class="stat-value">{{ saveInfo.candy?.toLocaleString() || 0 }}</span>
-                </div>
-              </div>
-              <div class="stat-card">
-                <span class="stat-icon">🍭</span>
-                <div class="stat-info">
-                  <span class="stat-label">棒棒糖</span>
-                  <span class="stat-value">{{ saveInfo.lollipops?.toLocaleString() || 0 }}</span>
-                </div>
-              </div>
+            <div class="preview-message">
+              <p>检测到您有游戏进度，可以继续上次的游戏</p>
             </div>
           </div>
 
