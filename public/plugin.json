@@ -1,13 +1,13 @@
 {
   "pluginName": "小游戏集合",
-  "description": "精选小游戏合集，支持存档功能，包括俄罗斯方块、小黑屋等多款经典游戏",
+  "description": "精选小游戏合集，支持存档功能，包括俄罗斯方块、小黑屋、糖果盒子2等多款经典游戏",
   "main": "index.html",
   "logo": "logo.png",
   "version": "2.0.1",
   "author": "Your Name",
   "homepage": "https://github.com/yourusername/games-collection",
   "development": {
-    "main": "http://localhost:5177/#/"
+    "main": "http://localhost:5173/#/"
   },
   "features": [
     {
@@ -38,6 +38,17 @@
         "adarkroom",
         "a dark room",
         "黑暗房间"
+      ]
+    },
+    {
+      "code": "candybox2",
+      "explain": "直接打开糖果盒子2（Candy Box 2）游戏",
+      "cmds": [
+        "糖果盒子2",
+        "candybox2",
+        "candy box 2",
+        "糖果",
+        "candy"
       ]
     }
   ]
