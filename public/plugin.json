@@ -1,13 +1,13 @@
 {
   "pluginName": "小游戏集合",
-  "description": "精选小游戏合集，支持存档功能，包括俄罗斯方块、小黑屋、糖果盒子2等多款经典游戏",
+  "description": "精选小游戏合集，支持存档功能，包括俄罗斯方块、小黑屋、糖果盒子2、人生重开模拟器等多款经典游戏",
   "main": "index.html",
   "logo": "logo.png",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "author": "Your Name",
   "homepage": "https://github.com/yourusername/games-collection",
   "development": {
-    "main": "http://localhost:5173/#/"
+    "main": "http://localhost:5177/#/"
   },
   "features": [
     {
@@ -49,6 +49,18 @@
         "candy box 2",
         "糖果",
         "candy"
+      ]
+    },
+    {
+      "code": "liferestart",
+      "explain": "直接打开人生重开模拟器（Life Restart）游戏",
+      "cmds": [
+        "人生重开模拟器",
+        "liferestart",
+        "life restart",
+        "人生重开",
+        "重开",
+        "人生模拟"
       ]
     }
   ]
