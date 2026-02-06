@@ -72,7 +72,45 @@ export class SaveGameManager {
    */
   async exportSave(gameId, iframe = null) {
     try {
-      if (gameId === 'candybox2' && iframe && iframe.contentWindow) {
+      if (gameId === 'adarkroom' && iframe && iframe.contentWindow) {
+        // 从 iframe 读取 localStorage 数据（小黑屋）
+        const localStorageData = await this.getLocalStorageFromIframe(iframe, 'adarkroom')
+
+        if (!localStorageData || Object.keys(localStorageData).length === 0) {
+          return {
+            success: false,
+            message: '没有找到存档数据'
+          }
+        }
+
+        // 创建存档文件（游戏的原始格式）
+        const saveData = {
+          version: '1.0',
+          gameId: gameId,
+          exportTime: new Date().toISOString(),
+          data: localStorageData
+        }
+
+        // 转换为 JSON 字符串
+        const jsonString = JSON.stringify(saveData, null, 2)
+
+        // 创建 Blob 并下载
+        const blob = new Blob([jsonString], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${gameId}_save_${new Date().toISOString().slice(0, 10)}.json`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+
+        return {
+          success: true,
+          message: `成功导出 ${Object.keys(localStorageData).length} 个存档项`,
+          count: Object.keys(localStorageData).length
+        }
+      } else if (gameId === 'candybox2' && iframe && iframe.contentWindow) {
         // 从 iframe 读取 localStorage 数据（游戏原始格式）
         const localStorageData = await this.getLocalStorageFromIframe(iframe)
 
@@ -139,7 +177,20 @@ export class SaveGameManager {
         throw new Error('存档格式不正确')
       }
 
-      if (gameId === 'candybox2' && iframe && iframe.contentWindow) {
+      if (gameId === 'adarkroom' && iframe && iframe.contentWindow) {
+        // 导入到 iframe 的 localStorage（小黑屋）
+        await this.setLocalStorageToIframe(iframe, saveData.data, 'adarkroom')
+
+        // 刷新游戏以应用新存档
+        iframe.contentWindow.location.reload()
+
+        return {
+          success: true,
+          message: `成功导入 ${Object.keys(saveData.data).length} 个存档项，游戏已刷新`,
+          count: Object.keys(saveData.data).length,
+          exportTime: saveData.exportTime
+        }
+      } else if (gameId === 'candybox2' && iframe && iframe.contentWindow) {
         // 导入到 iframe 的 localStorage（游戏的原始格式）
         await this.setLocalStorageToIframe(iframe, saveData.data)
 
@@ -166,8 +217,10 @@ export class SaveGameManager {
 
   /**
    * 从 iframe 获取所有 localStorage 数据
+   * @param {HTMLIFrameElement} iframe - iframe 元素
+   * @param {string} gameType - 游戏类型（'candybox2' 或 'adarkroom'）
    */
-  getLocalStorageFromIframe(iframe) {
+  getLocalStorageFromIframe(iframe, gameType = 'candybox2') {
     return new Promise((resolve) => {
       if (!iframe || !iframe.contentWindow) {
         resolve(null)
@@ -182,6 +235,10 @@ export class SaveGameManager {
         resolve(null)
       }, 5000)
 
+      // 根据游戏类型设置消息类型
+      const messageType = gameType === 'adarkroom' ? 'adarkroom-save-data' : 'candybox2-save-data'
+      const requestType = gameType === 'adarkroom' ? 'adarkroom-get-save-data' : 'candybox2-get-save-data'
+
       // 监听来自 iframe 的响应
       const messageHandler = (event) => {
         // 验证消息来源
@@ -190,7 +247,7 @@ export class SaveGameManager {
           return
         }
 
-        if (event.data && event.data.type === 'candybox2-save-data') {
+        if (event.data && event.data.type === messageType) {
           clearTimeout(timeout)
           window.removeEventListener('message', messageHandler)
           resolve(event.data.data || {})
@@ -201,15 +258,18 @@ export class SaveGameManager {
 
       // 向 iframe 发送请求
       iframe.contentWindow.postMessage({
-        type: 'candybox2-get-save-data'
+        type: requestType
       }, targetOrigin)
     })
   }
 
   /**
    * 向 iframe 设置 localStorage 数据
+   * @param {HTMLIFrameElement} iframe - iframe 元素
+   * @param {Object} data - 存档数据
+   * @param {string} gameType - 游戏类型（'candybox2' 或 'adarkroom'）
    */
-  setLocalStorageToIframe(iframe, data) {
+  setLocalStorageToIframe(iframe, data, gameType = 'candybox2') {
     return new Promise((resolve) => {
       if (!iframe || !iframe.contentWindow) {
         resolve(false)
@@ -224,6 +284,9 @@ export class SaveGameManager {
         resolve(false)
       }, 5000)
 
+      // 根据游戏类型设置消息类型
+      const messageType = gameType === 'adarkroom' ? 'adarkroom-save-data-set' : 'candybox2-save-data-set'
+
       // 监听来自 iframe 的响应
       const messageHandler = (event) => {
         // 验证消息来源
@@ -232,7 +295,7 @@ export class SaveGameManager {
           return
         }
 
-        if (event.data && event.data.type === 'candybox2-save-data-set') {
+        if (event.data && event.data.type === messageType) {
           clearTimeout(timeout)
           window.removeEventListener('message', messageHandler)
           resolve(event.data.success || false)
@@ -241,9 +304,12 @@ export class SaveGameManager {
 
       window.addEventListener('message', messageHandler)
 
+      // 根据游戏类型设置消息类型
+      const requestType = gameType === 'adarkroom' ? 'adarkroom-set-save-data' : 'candybox2-set-save-data'
+
       // 向 iframe 发送数据，让其写入 localStorage
       iframe.contentWindow.postMessage({
-        type: 'candybox2-set-save-data',
+        type: requestType,
         data: data
       }, targetOrigin)
     })

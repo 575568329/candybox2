@@ -79,13 +79,12 @@ const games = ref([
     englishName: 'A Dark Room',
     description: '极简主义文字冒险游戏，在黑暗中求生',
     icon: '🏚️',
-    path: 'https://adarkroom.doublespeakgames.com/',
+    path: '/adarkroom',
     color: '#2d3748',
     category: 'rpg',
     tags: ['RPG', '文字', '冒险', '转载'],
     difficulty: '困难',
     players: '单人',
-    isExternalLink: true, // 标记为外部链接
     source: '转载自 doublespeakgames.com'
   }
 ])
@@ -207,6 +206,9 @@ const launchGame = (game) => {
   // 如果是 Vue 组件游戏，直接跳转到对应路由
   if (game.isVueComponent) {
     router.push(game.path)
+  } else if (game.id === 'adarkroom') {
+    // 小黑屋使用独立组件
+    router.push('/adarkroom')
   } else {
     // 否则使用 GameView 加载 iframe
     router.push(`/game/${game.id}`)

@@ -36,6 +36,9 @@ const slotToDelete = ref(null)
 
 const lastUpdateTime = ref(null)
 
+// 文件导入相关
+const fileInputRef = ref(null)
+
 // 导航栏自动隐藏
 const isHeaderVisible = ref(true)
 let hideTimer = null
@@ -774,7 +777,7 @@ onUnmounted(() => {
 /* 顶部栏 */
 .game-header {
   height: 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   display: flex;

@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import GameList from '../GameList/index.vue'
 import GameView from '../views/GameView.vue'
+import ADarkRoomView from '../views/ADarkRoomView.vue'
 import TetrisGame from '../components/TetrisGame.vue'
 
 const routes = [
@@ -14,6 +15,11 @@ const routes = [
     name: 'Game',
     component: GameView,
     props: true
+  },
+  {
+    path: '/adarkroom',
+    name: 'ADarkRoom',
+    component: ADarkRoomView
   },
   {
     path: '/tetris',
