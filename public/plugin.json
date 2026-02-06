@@ -40,6 +40,16 @@
         "candy",
         "文字rpg"
       ]
+    },
+    {
+      "code": "adarkroom",
+      "explain": "直接打开小黑屋（A Dark Room）游戏",
+      "cmds": [
+        "小黑屋",
+        "adarkroom",
+        "a dark room",
+        "黑暗房间"
+      ]
     }
   ]
 }

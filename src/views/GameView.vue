@@ -102,6 +102,13 @@ const isUToolsEnv = computed(() => {
 // 获取游戏 URL
 const gameUrl = computed(() => {
   if (!game.value) return ''
+
+  // 如果是外部链接（http/https 开头），直接返回
+  if (game.value.path.startsWith('http://') || game.value.path.startsWith('https://')) {
+    return game.value.path
+  }
+
+  // 否则使用本地路径
   const baseUrl = window.location.origin
   return `${baseUrl}${game.value.path}`
 })

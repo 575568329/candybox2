@@ -72,6 +72,21 @@ const games = ref([
     tags: ['RPG', '文字', '冒险'],
     difficulty: '中等',
     players: '单人'
+  },
+  {
+    id: 'adarkroom',
+    name: '小黑屋',
+    englishName: 'A Dark Room',
+    description: '极简主义文字冒险游戏，在黑暗中求生',
+    icon: '🏚️',
+    path: 'https://adarkroom.doublespeakgames.com/',
+    color: '#2d3748',
+    category: 'rpg',
+    tags: ['RPG', '文字', '冒险', '转载'],
+    difficulty: '困难',
+    players: '单人',
+    isExternalLink: true, // 标记为外部链接
+    source: '转载自 doublespeakgames.com'
   }
 ])
 
@@ -396,6 +411,7 @@ onUnmounted(() => {
             <div class="game-header">
               <div class="game-icon">{{ game.icon }}</div>
               <div class="header-actions">
+                <div v-if="game.isExternalLink" class="external-link-badge">转载</div>
                 <div v-if="game.comingSoon" class="coming-soon-badge">即将推出</div>
               </div>
             </div>
@@ -721,6 +737,16 @@ onUnmounted(() => {
   padding: 3px 8px;
   border-radius: 8px;
   font-weight: 500;
+}
+
+.external-link-badge {
+  font-size: 10px;
+  color: #90cdf4;
+  background: rgba(144, 205, 244, 0.15);
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-weight: 500;
+  margin-right: 4px;
 }
 
 .game-name {
