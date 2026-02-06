@@ -85,6 +85,20 @@ const games = ref([
     difficulty: '中等',
     players: '单人',
     isVueComponent: true // 标记为Vue组件游戏
+  },
+  {
+    id: 'liferestart',
+    name: '人生重开模拟器',
+    englishName: 'Life Restart',
+    description: '模拟另一种人生，体验不同的人生轨迹和选择',
+    icon: '🔄',
+    path: '/liferestart',
+    color: '#48bb78',
+    category: 'rpg',
+    tags: ['RPG', '模拟', '文字', '人生'],
+    difficulty: '简单',
+    players: '单人',
+    isVueComponent: true
   }
 ])
 

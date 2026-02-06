@@ -3,6 +3,7 @@ import GameList from '../GameList/index.vue'
 import ADarkRoomView from '../views/ADarkRoomView.vue'
 import TetrisGame from '../components/TetrisGame.vue'
 import CandyBox2Game from '../components/CandyBox2Game.vue'
+import LifeRestartGame from '../components/LifeRestartGame.vue'
 
 const routes = [
   {
@@ -24,6 +25,11 @@ const routes = [
     path: '/candybox2',
     name: 'CandyBox2',
     component: CandyBox2Game
+  },
+  {
+    path: '/liferestart',
+    name: 'LifeRestart',
+    component: LifeRestartGame
   }
 ]
 
