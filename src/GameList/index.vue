@@ -219,10 +219,7 @@ const selectCategory = (categoryId) => {
 
 // 初始化
 onMounted(() => {
-  // 初始化埋点追踪器
-  analyticsTracker.init()
-
-  // 追踪列表页访问
+  // 追踪列表页访问（埋点已在 App.vue 中全局初始化）
   analyticsTracker.trackPageView('game_list', {
     totalGames: games.value.length,
     categories: categories.value.map(c => c.id)

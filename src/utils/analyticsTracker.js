@@ -15,6 +15,8 @@ export class AnalyticsTracker {
     this.pendingEvents = []
     this.syncInterval = null
     this.isOnline = navigator.onLine
+    this.isSyncing = false // ✅ 修复问题3：并发控制标志
+    this.throttledEvents = [] // ✅ 修复问题5：节流事件延迟队列
 
     // 节流控制：同一类型事件的最小间隔（毫秒）
     this.throttleIntervals = {
@@ -165,11 +167,17 @@ export class AnalyticsTracker {
   }
 
   /**
-   * 追踪页面访问（带节流）
+   * 追踪页面访问（带节流和延迟队列）
    */
   trackPageView(page, pageData = {}) {
-    // 节流检查
+    // ✅ 修复问题5：节流事件进入延迟队列而非直接丢弃
     if (this.shouldThrottle('page_view')) {
+      // 加入延迟队列，后续在 sync() 中去重
+      this.throttledEvents.push({
+        type: 'pv',
+        data: { p: page.substring(0, 10) },
+        time: Date.now()
+      })
       return
     }
     this.updateEventTime('page_view')
@@ -182,21 +190,27 @@ export class AnalyticsTracker {
   }
 
   /**
-   * 追踪用户行为（带节流和统计）
+   * 追踪用户行为（带节流、统计和延迟队列）
    */
   trackUserAction(action, actionData = {}) {
-    // 节流检查
+    // 统计事件（无论是否节流都要统计）
+    this.incrementEventStats(action, actionData)
+
+    // ✅ 修复问题5：节流事件进入延迟队列
     if (this.shouldThrottle(action)) {
-      // 即使被节流，也要统计次数
-      this.incrementEventStats(action, actionData)
+      this.throttledEvents.push({
+        type: 'ua',
+        data: {
+          a: action.substring(0, 15),
+          ...this.simplifyData(actionData)
+        },
+        time: Date.now()
+      })
       return
     }
     this.updateEventTime(action)
 
-    // 统计事件
-    this.incrementEventStats(action, actionData)
-
-    // 某些频繁事件只统计不立即记录
+    // 某些频繁事件只统计不立即记录（已经被上面的延迟队列处理）
     if (action === 'search' || action === 'category_change') {
       return
     }
@@ -279,41 +293,72 @@ export class AnalyticsTracker {
   }
 
   /**
-   * 同步数据到服务器（优化版 - 防止数据膨胀）
-   * - 拉取服务器数据后立即清空本地队列
-   * - 只提交新事件，避免重复
-   * - 只保留7天内的数据
-   * - 限制服务器事件总数
+   * 同步数据到服务器（修复版 - 防止数据丢失和并发问题）
+   * - 添加并发控制，防止多个 sync() 同时执行
+   * - 只在上传成功后才清空队列
+   * - 处理节流事件队列（去重后添加）
+   * - 只在成功时重置统计数据
+   * - 保留30天内的数据，最多1000个事件
    */
   async sync() {
+    // ✅ 修复问题3：并发控制
+    if (this.isSyncing) {
+      console.log('[埋点] 正在同步中，跳过本次请求')
+      return
+    }
+
     if (!this.isOnline || this.pendingEvents.length === 0) {
       return
     }
 
+    this.isSyncing = true // ✅ 设置同步标志
+    console.log(`[埋点] 开始同步 ${this.pendingEvents.length} 个事件`)
+
     try {
+      // ✅ 修复问题5：处理节流事件队列（去重）
+      if (this.throttledEvents.length > 0) {
+        const dedupedThrottled = []
+        const seenKeys = new Set()
+
+        // 只保留每个类型的最后一个事件
+        for (const event of this.throttledEvents) {
+          const key = `${event.type}_${JSON.stringify(event.data)}`
+          if (!seenKeys.has(key)) {
+            dedupedThrottled.push(event)
+            seenKeys.add(key)
+          }
+        }
+
+        // 将去重后的节流事件转换为正式事件
+        dedupedThrottled.forEach(e => {
+          this.addEvent(this.createEvent(e.type, e.data))
+        })
+
+        this.throttledEvents = [] // 清空节流队列
+        console.log(`[埋点] 添加了 ${dedupedThrottled.length} 个节流事件`)
+      }
+
       // 添加统计数据到事件队列
-      if (Object.keys(this.eventStats.gameClicks).length > 0 ||
-          Object.keys(this.eventStats.categoryViews).length > 0 ||
-          this.eventStats.searchCount > 0) {
+      const statsToSync = { ...this.eventStats }
+      if (Object.keys(statsToSync.gameClicks).length > 0 ||
+          Object.keys(statsToSync.categoryViews).length > 0 ||
+          statsToSync.searchCount > 0) {
         this.pendingEvents.push({
           t: 'stats',
           ts: Date.now(),
           d: {
-            gc: this.eventStats.gameClicks,
-            cc: this.eventStats.categoryViews,
-            sc: this.eventStats.searchCount
+            gc: statsToSync.gameClicks,
+            cc: statsToSync.categoryViews,
+            sc: statsToSync.searchCount
           }
         })
-        // 重置统计
-        this.eventStats = { gameClicks: {}, categoryViews: {}, searchCount: 0 }
       }
 
       // 获取现有数据
       const existingData = await this.getExistingData()
 
-      // 准备新数据（立即清空本地队列，避免重复提交）
+      // ✅ 修复问题1：准备同步数据，但不清空队列
       const eventsToSync = [...this.pendingEvents]
-      this.pendingEvents = [] // ✅ 立即清空本地队列
 
       // 数据限制配置
       const MAX_EVENTS = 1000 // 最多保留1000个事件
@@ -351,13 +396,24 @@ export class AnalyticsTracker {
         }
       }
 
-      // 保存到 Pantry
-      await this.saveToPantry(updatedData)
+      // ✅ 修复问题1：保存到 Pantry 并检查结果
+      const success = await this.saveToPantry(updatedData)
 
-      // 即使上传失败也不恢复队列，避免重复提交
+      if (success) {
+        // ✅ 修复问题1：只有成功才清空队列
+        this.pendingEvents = []
+        // ✅ 修复问题4：只有成功才重置统计数据
+        this.eventStats = { gameClicks: {}, categoryViews: {}, searchCount: 0 }
+        console.log('[埋点] 同步成功')
+      } else {
+        console.warn('[埋点] 上传失败，保留队列等待下次同步')
+        // ✅ 修复问题1：失败时不清空队列，数据保留
+      }
     } catch (error) {
       console.error('[埋点] 同步失败:', error)
-      // 失败时也不恢复队列，等待下次同步
+      // ✅ 修复问题1：失败时不清空队列，数据保留
+    } finally {
+      this.isSyncing = false // ✅ 释放同步标志
     }
   }
 
@@ -413,22 +469,64 @@ export class AnalyticsTracker {
   }
 
   /**
-   * 初始化追踪器（简化版）
+   * 初始化追踪器（修复版）
    */
   init() {
     this.setupConnectivityListener()
     this.startAutoSync()
 
-    // 页面卸载前同步数据
+    // ✅ 修复问题2和6：页面卸载前的正确处理
     window.addEventListener('beforeunload', () => {
+      // ✅ 修复问题6：确保游戏会话结束
       if (this.currentSession) {
         this.endGameSession()
       }
-      // 使用 sendBeacon 确保数据能发送出去
-      if (navigator.sendBeacon) {
-        this.sync()
+
+      // ✅ 修复问题2：使用 sendBeacon 确保数据能发送出去
+      if (navigator.sendBeacon && this.pendingEvents.length > 0) {
+        console.log('[埋点] 页面卸载，使用 sendBeacon 发送数据')
+
+        // 合并节流事件和统计数据
+        const eventsToSend = [...this.pendingEvents]
+
+        // 添加统计数据
+        if (Object.keys(this.eventStats.gameClicks).length > 0 ||
+            Object.keys(this.eventStats.categoryViews).length > 0 ||
+            this.eventStats.searchCount > 0) {
+          eventsToSend.push({
+            t: 'stats',
+            ts: Date.now(),
+            d: {
+              gc: this.eventStats.gameClicks,
+              cc: this.eventStats.categoryViews,
+              sc: this.eventStats.searchCount
+            }
+          })
+        }
+
+        const data = {
+          v: '2.0',
+          u: this.userId,
+          ls: Date.now(),
+          te: eventsToSend.length,
+          events: eventsToSend
+        }
+
+        const blob = new Blob([JSON.stringify(data)], { type: 'application/json' })
+        navigator.sendBeacon(`${PANTRY_API_BASE}/basket/${BASKET_NAME}`, blob)
       }
     })
+
+    // ✅ 修复问题6：定期保存会话进度（每分钟）
+    setInterval(() => {
+      if (this.currentSession) {
+        // 保存当前会话进度到 localStorage（作为备份）
+        localStorage.setItem('game_session_temp', JSON.stringify({
+          ...this.currentSession,
+          saved: Date.now()
+        }))
+      }
+    }, 60000)
 
     // 追踪初始页面访问
     this.trackPageView('app_start')

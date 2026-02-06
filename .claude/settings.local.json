@@ -13,7 +13,9 @@
       "Bash(npx vue-tsc:*)",
       "Bash(git merge:*)",
       "Bash(netstat:*)",
-      "mcp__zread__read_file"
+      "mcp__zread__read_file",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)"
     ]
   }
 }

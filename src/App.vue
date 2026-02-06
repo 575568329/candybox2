@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted } from 'vue'
+import { analyticsTracker } from './utils/analyticsTracker.js'
 
 // 检查是否在 uTools 环境中
 const isUToolsEnv = () => {
@@ -7,6 +8,10 @@ const isUToolsEnv = () => {
 }
 
 onMounted(() => {
+  // 初始化埋点追踪器（全局初始化，确保所有页面都能收集数据）
+  console.log('[埋点] 初始化追踪器')
+  analyticsTracker.init()
+
   // 检查是否在 uTools 环境中
   if (!isUToolsEnv()) {
     console.log('当前在浏览器中预览')
@@ -22,6 +27,9 @@ onMounted(() => {
 
     window.utools.onPluginOut(() => {
       console.log('插件退出')
+      // 停止自动同步并触发一次同步
+      analyticsTracker.stopAutoSync()
+      analyticsTracker.sync()
     })
   }
 })
