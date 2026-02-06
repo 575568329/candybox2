@@ -11,7 +11,9 @@
       "Bash(git push:*)",
       "mcp__zread__get_repo_structure",
       "Bash(npx vue-tsc:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(netstat:*)",
+      "mcp__zread__read_file"
     ]
   }
 }

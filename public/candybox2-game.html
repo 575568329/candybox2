@@ -1,0 +1,98 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Candy Box 2</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+
+    <!-- 在游戏加载前从父窗口恢复存档数据 -->
+    <script type="text/javascript">
+      (function() {
+        try {
+          // 从父窗口 localStorage 读取待加载的数据
+          const pendingSlot = parent.localStorage.getItem('candybox2_pending_slot')
+          const pendingDataStr = parent.localStorage.getItem('candybox2_pending_data')
+
+          if (pendingSlot && pendingDataStr) {
+            const pendingData = JSON.parse(pendingDataStr)
+            const slotKey = 'slot' + pendingSlot
+
+            // 清空当前 localStorage
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+              localStorage.removeItem(localStorage.key(i))
+            }
+
+            // 恢复所有数据
+            Object.entries(pendingData._data).forEach(([key, value]) => {
+              localStorage.setItem(key, value)
+            })
+
+            // 清除父窗口的暂存数据
+            parent.localStorage.removeItem('candybox2_pending_slot')
+            parent.localStorage.removeItem('candybox2_pending_data')
+
+            // 在全局作用域存储目标槽位，供游戏加载后使用
+            window.CANDYBOX2_TARGET_SLOT = slotKey;
+          }
+        } catch (error) {
+          console.error('❌ [iframe] 恢复存档数据失败:', error)
+        }
+      })()
+    </script>
+
+    <!-- 在游戏加载后清理验证标记 -->
+    <script type="text/javascript">
+      // 等待游戏和 DOM 完全加载
+      window.addEventListener('load', function() {
+        // 延迟检查游戏状态
+        setTimeout(function() {
+          // 清理验证标记
+          if (window.CANDYBOX2_TARGET_SLOT) {
+            delete window.CANDYBOX2_TARGET_SLOT;
+          }
+
+          // 尝试从当前活动的 Place 获取 game 对象
+          try {
+            const mainContent = document.getElementById('mainContent');
+            if (mainContent && mainContent.place) {
+              window.GAME_OBJECT = mainContent.place.getGame();
+            }
+          } catch (e) {
+            // 忽略错误
+          }
+        }, 2000);
+      });
+    </script>
+
+    <script type="text/javascript" src="/libs/jquery-1.9.1.min.js"></script>
+    <script type="text/javascript" src="/candybox2.js"></script>
+
+    <!-- 劫持 Keyboard.setGame 方法以暴露 game 对象 -->
+    <script type="text/javascript">
+      (function() {
+        if (window.Keyboard && window.Keyboard.setGame) {
+          // Keyboard 已经存在，直接劫持
+          const originalSetGame = window.Keyboard.setGame;
+          window.Keyboard.setGame = function(game) {
+            window.GAME_OBJECT = game;
+            return originalSetGame.call(this, game);
+          };
+        } else {
+          console.error('❌ [iframe] Keyboard 对象不存在，劫持失败！');
+        }
+      })();
+    </script>
+
+    <link rel="stylesheet" type="text/css" href="/css/candybox2.css"/>
+
+    <style>
+      /* 隐藏游戏内的存档加载提示（因为已有顶部槽位选择器） */
+      .saveLocalLoadYouCan {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="aroundStatusBar"><pre id="statusBar"></pre></div>
+    <pre id="mainContent"></pre>
+  </body>
+</html>
