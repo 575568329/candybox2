@@ -265,7 +265,7 @@ export class SaveGameManager {
   }
 
   /**
-   * 清除存档
+   * 清除存档（保留设置）
    * @param {string} gameId - 游戏ID
    */
   async clearSave(gameId) {
@@ -285,15 +285,20 @@ export class SaveGameManager {
         }
       }
 
-      // 删除所有存档
+      let deletedCount = 0
+      // 删除所有存档（但保留设置文件）
       for (const doc of docs) {
-        await this.removeDoc(doc._id)
+        // 跳过设置文件，不删除
+        if (!doc._id.endsWith('settings')) {
+          await this.removeDoc(doc._id)
+          deletedCount++
+        }
       }
 
       return {
         success: true,
-        message: `已清除 ${docs.length} 个存档项`,
-        count: docs.length
+        message: `已清除 ${deletedCount} 个存档项（保留设置）`,
+        count: deletedCount
       }
     } catch (error) {
       console.error('清除存档失败:', error)

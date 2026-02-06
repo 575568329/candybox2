@@ -9,6 +9,53 @@ const lastSaveTime = ref(null)
 const showSaveTime = ref(false) // 控制保存时间的显示
 const iframeUrl = ref('')
 
+// 导航栏自动收起
+const headerVisible = ref(true)
+let headerTimer = null
+
+// 显示导航栏
+const showHeader = () => {
+  headerVisible.value = true
+  if (headerTimer) {
+    clearTimeout(headerTimer)
+    headerTimer = null
+  }
+}
+
+// 隐藏导航栏
+const hideHeader = () => {
+  headerVisible.value = false
+}
+
+// 延迟隐藏导航栏
+const scheduleHideHeader = () => {
+  if (headerTimer) {
+    clearTimeout(headerTimer)
+  }
+  headerTimer = setTimeout(() => {
+    hideHeader()
+  }, 3000) // 3秒后自动隐藏
+}
+
+// 鼠标进入顶部区域
+const onMouseEnterHeader = () => {
+  showHeader()
+}
+
+// 鼠标离开顶部区域
+const onMouseLeaveHeader = () => {
+  scheduleHideHeader()
+}
+
+// 鼠标在游戏区域移动
+const onMouseMoveGame = (event) => {
+  // 如果鼠标在顶部50px内，显示导航栏
+  if (event.clientY < 50) {
+    showHeader()
+    scheduleHideHeader()
+  }
+}
+
 // Toast 通知状态
 const toastMessage = ref('')
 const toastVisible = ref(false)
@@ -251,6 +298,9 @@ onMounted(async () => {
     timestamp: Date.now()
   })
 
+  // 3秒后自动隐藏导航栏
+  scheduleHideHeader()
+
   // 启动定时自动保存（每30秒保存一次）
   autoSaveInterval = setInterval(async () => {
     try {
@@ -287,11 +337,16 @@ onUnmounted(async () => {
   if (autoSaveInterval) {
     clearInterval(autoSaveInterval)
   }
+
+  // 清理导航栏定时器
+  if (headerTimer) {
+    clearTimeout(headerTimer)
+  }
 })
 </script>
 
 <template>
-  <div class="candybox2-wrapper">
+  <div class="candybox2-wrapper" @mousemove="onMouseMoveGame">
     <!-- 自定义 Toast 通知 -->
     <Transition name="toast-fade">
       <div v-if="toastVisible" class="toast-notification">
@@ -299,22 +354,30 @@ onUnmounted(async () => {
       </div>
     </Transition>
 
-    <!-- 顶部导航栏 -->
-    <div class="game-header">
-      <button class="back-btn" @click="goBack">
-        <span class="back-icon">←</span>
-        <span class="back-text">返回游戏列表</span>
-      </button>
-      <div class="game-title">
-        <span class="game-icon">🍬</span>
-        <span class="game-title-text">糖果盒子2</span>
-        <span class="game-version">v1.2.3</span>
-      </div>
+    <!-- 顶部导航栏容器 -->
+    <div
+      class="header-container"
+      :class="{ 'header-hidden': !headerVisible }"
+      @mouseenter="onMouseEnterHeader"
+      @mouseleave="onMouseLeaveHeader"
+    >
+      <!-- 顶部导航栏 -->
+      <div class="game-header">
+          <button class="back-btn" @click="goBack">
+            <span class="back-icon">←</span>
+            <span class="back-text">返回</span>
+          </button>
+          <div class="game-title">
+            <span class="game-icon">🍬</span>
+            <span class="game-title-text">糖果盒子2</span>
+            <span class="game-version">v1.2.3</span>
+          </div>
 
-      <!-- 保存提示 -->
-      <div class="save-info">
-        <div class="shortcut-hint">Ctrl+S 保存 | 自动存档已启用</div>
-      </div>
+          <!-- 保存提示 -->
+          <div class="save-info">
+            <div class="shortcut-hint">Ctrl+S 保存 | 自动存档已启用</div>
+          </div>
+        </div>
     </div>
 
     <!-- 游戏容器 - 使用 iframe 完全隔离 -->
@@ -335,18 +398,6 @@ onUnmounted(async () => {
         </div>
       </Transition>
     </div>
-
-    <!-- 游戏信息 -->
-    <div class="game-footer">
-      <p class="footer-text">
-        Candy Box 2 by
-        <a href="https://twitter.com/aniwey" target="_blank" rel="noopener">@aniwey</a>
-        |
-        <a href="https://candybox2.github.io" target="_blank" rel="noopener">官网</a>
-        |
-        <a href="http://candybox2.gamepedia.com" target="_blank" rel="noopener">Wiki</a>
-      </p>
-    </div>
   </div>
 </template>
 
@@ -354,7 +405,7 @@ onUnmounted(async () => {
 .candybox2-wrapper {
   width: 100%;
   height: 100vh;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: #fff;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -400,49 +451,57 @@ onUnmounted(async () => {
   transform: translateX(100px);
 }
 
+/* 导航栏容器 */
+.header-container {
+  position: relative;
+  z-index: 1000;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.header-container.header-hidden {
+  transform: translateY(-100%);
+}
+
 /* 顶部导航栏 */
 .game-header {
   height: 56px;
-  background: rgba(255, 255, 255, 0.05);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  flex-shrink: 0;
-  z-index: 1000;
 }
 
 .back-btn {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 12px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  color: white;
+  font-size: 11px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.25);
-  color: white;
-  transform: translateX(-2px);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateX(-1px);
 }
 
 .back-icon {
-  font-size: 14px;
-  font-weight: bold;
+  font-size: 12px;
+  line-height: 1;
 }
 
 .back-text {
   font-weight: 500;
-  font-size: 12px;
 }
 
 .game-title {
@@ -494,6 +553,18 @@ onUnmounted(async () => {
   background: #f5f5f5;
 }
 
+/* 导航栏过渡动画 */
+.header-slide-enter-active,
+.header-slide-leave-active {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.header-slide-enter-from,
+.header-slide-leave-to {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+
 .game-iframe {
   width: 100%;
   height: 100%;
@@ -524,32 +595,6 @@ onUnmounted(async () => {
 .save-time-fade-leave-to {
   opacity: 0;
   transform: translateY(10px);
-}
-
-/* 游戏页脚 */
-.game-footer {
-  background: rgba(255, 255, 255, 0.05);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 12px 16px;
-  flex-shrink: 0;
-}
-
-.footer-text {
-  margin: 0;
-  text-align: center;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.footer-text a {
-  color: rgba(255, 255, 255, 0.8);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.footer-text a:hover {
-  color: white;
-  text-decoration: underline;
 }
 
 /* 响应式调整 */

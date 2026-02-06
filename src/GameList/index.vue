@@ -882,9 +882,9 @@ onUnmounted(() => {
 .game-start-modal {
   background: linear-gradient(135deg, #1e1e32 0%, #1a1a2e 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
+  border-radius: 16px;
   width: 90%;
-  max-width: 520px;
+  max-width: 380px;
   max-height: 80vh;
   overflow: hidden;
   display: flex;
@@ -897,19 +897,19 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 28px;
+  padding: 16px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   color: white;
 }
 
 .modal-content {
-  padding: 28px;
+  padding: 16px 20px;
   overflow-y: auto;
   flex: 1;
 }
@@ -918,24 +918,24 @@ onUnmounted(() => {
 .save-preview {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 24px;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
 }
 
 .preview-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .preview-icon {
-  font-size: 28px;
+  font-size: 20px;
 }
 
 .preview-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: white;
 }
@@ -943,21 +943,21 @@ onUnmounted(() => {
 .preview-stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 8px;
 }
 
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-radius: 8px;
+  padding: 10px 12px;
 }
 
 .stat-icon {
-  font-size: 24px;
+  font-size: 18px;
 }
 
 .stat-info {
@@ -967,14 +967,14 @@ onUnmounted(() => {
 }
 
 .stat-label {
-  font-size: 11px;
+  font-size: 10px;
   color: rgba(255, 255, 255, 0.6);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .stat-value {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: white;
 }
@@ -982,12 +982,12 @@ onUnmounted(() => {
 /* 模态框消息 */
 .modal-message {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .modal-message p {
   margin: 0;
-  font-size: 15px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.9);
   font-weight: 500;
 }
@@ -996,18 +996,18 @@ onUnmounted(() => {
 .modal-actions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .modal-btn {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
-  padding: 18px 24px;
+  padding: 12px 16px;
   border: 2px solid transparent;
-  border-radius: 14px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.08);
   color: white;
   cursor: pointer;
@@ -1044,25 +1044,25 @@ onUnmounted(() => {
 }
 
 .modal-btn .btn-icon {
-  font-size: 32px;
+  font-size: 24px;
   flex-shrink: 0;
 }
 
 .btn-content {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   flex: 1;
 }
 
 .btn-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.3;
 }
 
 .btn-desc {
-  font-size: 13px;
+  font-size: 11px;
   opacity: 0.8;
   line-height: 1.4;
 }
@@ -1094,20 +1094,24 @@ onUnmounted(() => {
     grid-template-columns: 1fr;
   }
 
+  .game-start-modal {
+    max-width: 320px;
+  }
+
   .modal-btn {
-    padding: 16px 20px;
+    padding: 10px 14px;
   }
 
   .modal-btn .btn-icon {
-    font-size: 28px;
+    font-size: 20px;
   }
 
   .btn-title {
-    font-size: 15px;
+    font-size: 13px;
   }
 
   .btn-desc {
-    font-size: 12px;
+    font-size: 10px;
   }
 
   .donate-btn {

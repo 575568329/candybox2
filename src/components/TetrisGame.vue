@@ -92,8 +92,11 @@ const lastMoveTime = ref({
 })
 const MOVE_INTERVAL = 150 // 移动间隔（毫秒）
 
-// 返回游戏列表
-const goBack = () => {
+// 返回游戏列表（先保存游戏）
+const goBack = async () => {
+  // 强制保存当前游戏状态（即使暂停中也要保存）
+  await autoSaveGame(true)
+  // 返回游戏列表
   router.push('/')
 }
 
@@ -569,16 +572,18 @@ const saveGameResult = async () => {
       const currentHigh = await getHighScore()
 
       if (score.value > currentHigh) {
+        const savePrefix = saveManager.getGameSavePrefix('tetris')
         await saveManager.putDoc({
-          _id: 'tetris_highscore',
+          _id: savePrefix + 'highscore',
           data: JSON.stringify(saveData),
           updatedAt: Date.now()
         })
       }
 
       // 保存游戏记录（用于统计）
+      const savePrefix = saveManager.getGameSavePrefix('tetris')
       await saveManager.putDoc({
-        _id: `tetris_game_${Date.now()}`,
+        _id: savePrefix + 'game_' + Date.now(),
         data: JSON.stringify(saveData),
         updatedAt: Date.now()
       })
@@ -605,7 +610,8 @@ const getHighScore = async () => {
   if (!window.utools) return 0
 
   try {
-    const docs = await saveManager.getAllDocs('tetris_highscore')
+    const savePrefix = saveManager.getGameSavePrefix('tetris')
+    const docs = await saveManager.getAllDocs(savePrefix + 'highscore')
     if (docs && docs.length > 0) {
       const data = JSON.parse(docs[0].data)
       return data.score || 0
@@ -846,22 +852,26 @@ const uploadScore = async () => {
   }
 }
 
-// 清空存档
+// 清空存档（保留设置）
 const clearSave = async () => {
   try {
     if (window.utools) {
-      // 删除 uTools 中的存档
-      const docs = await saveManager.getAllDocs('tetris_save')
+      // 删除 uTools 中的存档（但保留设置）
+      const savePrefix = saveManager.getGameSavePrefix('tetris')
+      const docs = await saveManager.getAllDocs(savePrefix)
       if (docs && docs.length > 0) {
         for (const doc of docs) {
-          await saveManager.removeDoc(doc._id)
+          // 跳过设置文件，不删除
+          if (!doc._id.endsWith('settings')) {
+            await saveManager.removeDoc(doc._id)
+          }
         }
       }
     } else {
-      // 删除 localStorage 中的存档
+      // 删除 localStorage 中的存档（保留设置）
       localStorage.removeItem('tetris_save')
     }
-    console.log('[清空存档] 存档已清空')
+    console.log('[清空存档] 存档已清空（保留设置）')
   } catch (error) {
     console.error('[清空存档] 失败:', error)
   }
@@ -1040,8 +1050,15 @@ const handleKeyUp = (event) => {
 }
 
 // 自动保存游戏（窗口关闭时）
-const autoSaveGame = async () => {
-  if (!isPlaying.value || isPaused.value || gameOver.value) {
+// @param {boolean} forceSave - 是否强制保存（忽略暂停状态）
+const autoSaveGame = async (forceSave = false) => {
+  // 如果不是强制保存，且游戏未进行、已暂停或已结束，则不保存
+  if (!isPlaying.value || gameOver.value) {
+    return
+  }
+
+  // 如果不是强制保存，且游戏暂停中，也不保存
+  if (!forceSave && isPaused.value) {
     return
   }
 
@@ -1051,13 +1068,29 @@ const autoSaveGame = async () => {
       score: score.value,
       level: level.value,
       lines: lines.value,
+      // 保存当前方块和下一个方块的状态
+      currentPiece: currentPiece.value ? {
+        type: currentPiece.value.type,
+        shape: currentPiece.value.shape,
+        color: currentPiece.value.color,
+        x: currentPiece.value.x,
+        y: currentPiece.value.y
+      } : null,
+      nextPiece: nextPiece.value ? {
+        type: nextPiece.value.type,
+        shape: nextPiece.value.shape,
+        color: nextPiece.value.color,
+        x: nextPiece.value.x,
+        y: nextPiece.value.y
+      } : null,
       timestamp: Date.now()
     }
 
     if (window.utools) {
-      // 保存到 uTools
+      // 保存到 uTools（使用 saveManager 的前缀规范）
+      const savePrefix = saveManager.getGameSavePrefix('tetris')
       await saveManager.putDoc({
-        _id: 'tetris_save',
+        _id: savePrefix + 'current',
         data: JSON.stringify(saveData),
         updatedAt: Date.now()
       })
@@ -1078,8 +1111,9 @@ const autoLoadGame = async () => {
     let saveData = null
 
     if (window.utools) {
-      // 从 uTools 加载
-      const docs = await saveManager.getAllDocs('tetris_save')
+      // 从 uTools 加载（使用 saveManager 的前缀规范）
+      const savePrefix = saveManager.getGameSavePrefix('tetris')
+      const docs = await saveManager.getAllDocs(savePrefix)
       if (docs && docs.length > 0) {
         saveData = JSON.parse(docs[0].data)
       }
@@ -1095,9 +1129,18 @@ const autoLoadGame = async () => {
       level.value = saveData.level
       lines.value = saveData.lines
 
-      // 生成当前方块和下一个方块
-      currentPiece.value = randomPiece()
-      nextPiece.value = randomPiece()
+      // 恢复当前方块和下一个方块（如果存档中有）
+      if (saveData.currentPiece) {
+        currentPiece.value = saveData.currentPiece
+      } else {
+        currentPiece.value = randomPiece()
+      }
+
+      if (saveData.nextPiece) {
+        nextPiece.value = saveData.nextPiece
+      } else {
+        nextPiece.value = randomPiece()
+      }
 
       // 标记为已加载状态，但不自动开始游戏
       isPlaying.value = true
@@ -1121,7 +1164,8 @@ const autoLoadGame = async () => {
 const loadSwapKeysSetting = async () => {
   if (window.utools) {
     try {
-      const docs = await saveManager.getAllDocs('tetris_settings')
+      const savePrefix = saveManager.getGameSavePrefix('tetris')
+      const docs = await saveManager.getAllDocs(savePrefix + 'settings')
       if (docs && docs.length > 0) {
         const settings = JSON.parse(docs[0].data)
         if (typeof settings.swapDropKeys === 'boolean') {
@@ -1145,8 +1189,9 @@ const loadSwapKeysSetting = async () => {
 const saveSwapKeysSetting = async () => {
   if (window.utools) {
     try {
+      const savePrefix = saveManager.getGameSavePrefix('tetris')
       await saveManager.putDoc({
-        _id: 'tetris_settings',
+        _id: savePrefix + 'settings',
         data: JSON.stringify({ swapDropKeys: swapDropKeys.value }),
         updatedAt: Date.now()
       })
@@ -1205,9 +1250,9 @@ onUnmounted(() => {
 <template>
   <div class="tetris-container" :class="{ 'focus-mode': focusMode }">
     <!-- 右上角返回按钮 -->
-    <button class="back-button" @click="goBack" title="返回游戏列表">
-      <span class="back-arrow">←</span>
-      <span class="back-label">返回</span>
+    <button class="back-btn" @click="goBack" title="返回游戏列表">
+      <span class="back-icon">←</span>
+      <span class="back-text">返回</span>
     </button>
 
     <!-- 游戏主区域 -->
@@ -1482,46 +1527,37 @@ onUnmounted(() => {
 }
 
 /* 左上角返回按钮 */
-.back-button {
+.back-btn {
   position: fixed;
   top: 10px;
   left: 10px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(102, 126, 234, 0.9);
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  padding: 8px 14px;
+  border-radius: 5px;
   color: white;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 11px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
   z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
 }
 
-.back-button:hover {
-  background: rgba(102, 126, 234, 1);
-  transform: translateX(2px);
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateX(-1px);
 }
 
-.back-button:active {
-  transform: translateX(0);
-}
-
-.back-arrow {
-  font-size: 16px;
-  font-weight: bold;
+.back-icon {
+  font-size: 12px;
   line-height: 1;
 }
 
-.back-label {
-  font-size: 14px;
-  line-height: 1;
+.back-text {
+  font-weight: 500;
 }
 
 /* 游戏主区域 */
@@ -2237,6 +2273,7 @@ onUnmounted(() => {
   border-radius: 16px;
   padding: 24px;
   max-width: 320px;
+  width: 90%;
   text-align: center;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   animation: slideUp 0.3s ease;
