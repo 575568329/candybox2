@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import GameList from '../GameList/index.vue'
 import ADarkRoomView from '../views/ADarkRoomView.vue'
 import TetrisGame from '../components/TetrisGame.vue'
+import CandyBox2Game from '../components/CandyBox2Game.vue'
 
 const routes = [
   {
@@ -18,6 +19,11 @@ const routes = [
     path: '/tetris',
     name: 'Tetris',
     component: TetrisGame
+  },
+  {
+    path: '/candybox2',
+    name: 'CandyBox2',
+    component: CandyBox2Game
   }
 ]
 

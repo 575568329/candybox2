@@ -71,6 +71,20 @@ const games = ref([
     difficulty: '困难',
     players: '单人',
     source: '转载自 doublespeakgames.com'
+  },
+  {
+    id: 'candybox2',
+    name: '糖果盒子2',
+    englishName: 'Candy Box 2',
+    description: 'ASCII艺术风格的文字RPG冒险游戏，收集糖果，探索世界',
+    icon: '🍬',
+    path: '/candybox2',
+    color: '#ff6b9d',
+    category: 'rpg',
+    tags: ['RPG', '文字', '冒险', 'ASCII'],
+    difficulty: '中等',
+    players: '单人',
+    isVueComponent: true // 标记为Vue组件游戏
   }
 ])
 
