@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>埋点数据检查工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #48bb78;
+            color: white;
+        }
+        .status.error {
+            background: #f56565;
+            color: white;
+        }
+        .status.warning {
+            background: #ed8936;
+            color: white;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+        pre {
+            background: #2d3748;
+            color: #48bb78;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .metric {
+            display: inline-block;
+            margin: 10px 20px 10px 0;
+            padding: 10px 15px;
+            background: #edf2f7;
+            border-radius: 4px;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 5px;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .info-box {
+            background: #ebf8ff;
+            border-left: 4px solid #4299e1;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .error-box {
+            background: #fed7d7;
+            border-left: 4px solid #f56565;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .code {
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background: #f7fafc;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        tr:hover {
+            background: #f7fafc;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 埋点数据检查工具</h1>
+
+    <div class="container">
+        <h2>1. 连接状态检查</h2>
+        <button onclick="checkConnection()">检查网络连接</button>
+        <button onclick="checkPantryAccess()">检查 Pantry 访问权限</button>
+        <div id="connection-status"></div>
+    </div>
+
+    <div class="container">
+        <h2>2. 查看当前埋点数据</h2>
+        <button onclick="fetchAnalyticsData()">获取服务器数据</button>
+        <button onclick="clearLocalStorage()">清空本地缓存</button>
+        <div id="analytics-data"></div>
+    </div>
+
+    <div class="container">
+        <h2>3. 发送测试事件</h2>
+        <button onclick="sendTestEvent()">发送测试事件</button>
+        <button onclick="sendMultipleTestEvents()">发送10个测试事件</button>
+        <div id="test-event-status"></div>
+    </div>
+
+    <div class="container">
+        <h2>4. 本地埋点状态</h2>
+        <button onclick="checkLocalStatus()">检查本地状态</button>
+        <div id="local-status"></div>
+    </div>
+
+    <div class="container">
+        <h2>📋 检查清单</h2>
+        <div class="info-box">
+            <strong>如何确认埋点正常工作：</strong>
+            <ol style="margin: 10px 0 0 20px;">
+                <li>点击"检查网络连接" - 应显示 <span class="status success">在线</span></li>
+                <li>点击"检查 Pantry 访问权限" - 应显示 <span class="status success">可访问</span></li>
+                <li>点击"获取服务器数据" - 应看到现有的事件数据</li>
+                <li>点击"发送测试事件" - 应显示成功消息</li>
+                <li>再次点击"获取服务器数据" - 事件数应该增加</li>
+                <li>在浏览器控制台查看 Network 标签，应该看到对 getpantry.cloud 的请求</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📊 数据统计说明</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>事件类型</th>
+                    <th>缩写</th>
+                    <th>说明</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>game_start</td>
+                    <td><span class="code">gs</span></td>
+                    <td>游戏开始</td>
+                </tr>
+                <tr>
+                    <td>game_end</td>
+                    <td><span class="code">ge</span></td>
+                    <td>游戏结束（包含时长）</td>
+                </tr>
+                <tr>
+                    <td>save_operation</td>
+                    <td><span class="code">so</span></td>
+                    <td>存档操作</td>
+                </tr>
+                <tr>
+                    <td>page_view</td>
+                    <td><span class="code">pv</span></td>
+                    <td>页面访问</td>
+                </tr>
+                <tr>
+                    <td>user_action</td>
+                    <td><span class="code">ua</span></td>
+                    <td>用户行为</td>
+                </tr>
+                <tr>
+                    <td>stats</td>
+                    <td><span class="code">stats</span></td>
+                    <td>统计汇总</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="container">
+        <h2>🔧 调试技巧</h2>
+        <div class="info-box">
+            <strong>在浏览器控制台（F12）执行以下命令：</strong>
+            <pre><code>// 1. 查看本地用户ID
+localStorage.getItem('game_user_id')
+
+// 2. 查看埋点统计信息
+analyticsTracker.getStats()
+
+// 3. 手动触发同步
+analyticsTracker.sync()
+
+// 4. 查看待发送事件数量
+analyticsTracker.pendingEvents.length
+
+// 5. 查看事件统计数据
+analyticsTracker.eventStats</code></pre>
+        </div>
+    </div>
+
+    <script>
+        const PANTRY_API_BASE = 'https://getpantry.cloud/apiv1/pantry/9eafe9e6-8ff7-41ab-b111-ecabbc1685a7';
+        const BASKET_NAME = 'GAME';
+
+        // 检查网络连接
+        function checkConnection() {
+            const status = document.getElementById('connection-status');
+            if (navigator.onLine) {
+                status.innerHTML = '<span class="status success">✓ 网络连接正常</span>';
+            } else {
+                status.innerHTML = '<span class="status error">✗ 网络未连接</span>';
+            }
+        }
+
+        // 检查 Pantry 访问权限
+        async function checkPantryAccess() {
+            const status = document.getElementById('connection-status');
+            status.innerHTML = '<span class="status warning">正在检查...</span>';
+
+            try {
+                const response = await fetch(`${PANTRY_API_BASE}/basket/${BASKET_NAME}`);
+                if (response.ok) {
+                    status.innerHTML = '<span class="status success">✓ Pantry 访问正常</span>';
+                } else {
+                    status.innerHTML = `<span class="status error">✗ 访问失败 (HTTP ${response.status})</span>`;
+                }
+            } catch (error) {
+                status.innerHTML = `<span class="status error">✗ 连接错误: ${error.message}</span>`;
+            }
+        }
+
+        // 获取服务器数据
+        async function fetchAnalyticsData() {
+            const display = document.getElementById('analytics-data');
+            display.innerHTML = '<p>正在获取数据...</p>';
+
+            try {
+                const response = await fetch(`${PANTRY_API_BASE}/basket/${BASKET_NAME}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    displayData(data, display);
+                } else {
+                    display.innerHTML = `<div class="error-box">获取失败: HTTP ${response.status}</div>`;
+                }
+            } catch (error) {
+                display.innerHTML = `<div class="error-box">获取错误: ${error.message}</div>`;
+            }
+        }
+
+        // 显示数据
+        function displayData(data, display) {
+            if (!data || !data.events || data.events.length === 0) {
+                display.innerHTML = '<div class="info-box">暂无数据</div>';
+                return;
+            }
+
+            const eventCount = data.events.length;
+            const lastSync = data.ls ? new Date(data.ls).toLocaleString('zh-CN') : '未知';
+
+            // 统计各类事件数量
+            const eventTypes = {};
+            data.events.forEach(event => {
+                eventTypes[event.t] = (eventTypes[event.t] || 0) + 1;
+            });
+
+            let html = `
+                <div class="metric">
+                    <div class="metric-label">总事件数</div>
+                    <div class="metric-value">${eventCount}</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">最后同步</div>
+                    <div class="metric-value">${lastSync}</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">版本</div>
+                    <div class="metric-value">${data.v || '未知'}</div>
+                </div>
+                <h3 style="margin-top: 20px;">事件类型分布</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>事件类型</th>
+                            <th>数量</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            Object.entries(eventTypes).forEach(([type, count]) => {
+                html += `<tr><td><span class="code">${type}</span></td><td>${count}</td></tr>`;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+                <h3>最近10个事件</h3>
+                <pre>${JSON.stringify(data.events.slice(-10), null, 2)}</pre>
+            `;
+
+            display.innerHTML = html;
+        }
+
+        // 发送测试事件
+        async function sendTestEvent() {
+            const status = document.getElementById('test-event-status');
+            status.innerHTML = '<span class="status warning">正在发送...</span>';
+
+            try {
+                const testData = {
+                    t: 'test',
+                    ts: Date.now(),
+                    d: {
+                        message: '测试事件',
+                        source: 'analytics-check-tool'
+                    }
+                };
+
+                const response = await fetch(`${PANTRY_API_BASE}/basket/${BASKET_NAME}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        v: '2.0',
+                        u: 'test_user',
+                        ls: Date.now(),
+                        te: 1,
+                        events: [testData]
+                    })
+                });
+
+                if (response.ok) {
+                    status.innerHTML = '<span class="status success">✓ 测试事件发送成功</span>';
+                } else {
+                    status.innerHTML = `<span class="status error">✗ 发送失败 (HTTP ${response.status})</span>`;
+                }
+            } catch (error) {
+                status.innerHTML = `<span class="status error">✗ 发送错误: ${error.message}</span>`;
+            }
+        }
+
+        // 发送多个测试事件
+        async function sendMultipleTestEvents() {
+            const status = document.getElementById('test-event-status');
+            status.innerHTML = '<span class="status warning">正在发送10个事件...</span>';
+
+            try {
+                const events = [];
+                for (let i = 0; i < 10; i++) {
+                    events.push({
+                        t: 'test',
+                        ts: Date.now() + i,
+                        d: {
+                            message: `测试事件 #${i + 1}`,
+                            source: 'analytics-check-tool'
+                        }
+                    });
+                }
+
+                const response = await fetch(`${PANTRY_API_BASE}/basket/${BASKET_NAME}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        v: '2.0',
+                        u: 'test_user',
+                        ls: Date.now(),
+                        te: events.length,
+                        events: events
+                    })
+                });
+
+                if (response.ok) {
+                    status.innerHTML = '<span class="status success">✓ 10个测试事件发送成功</span>';
+                } else {
+                    status.innerHTML = `<span class="status error">✗ 发送失败 (HTTP ${response.status})</span>`;
+                }
+            } catch (error) {
+                status.innerHTML = `<span class="status error">✗ 发送错误: ${error.message}</span>`;
+            }
+        }
+
+        // 检查本地状态
+        function checkLocalStatus() {
+            const display = document.getElementById('local-status');
+            const userId = localStorage.getItem('game_user_id');
+
+            let html = `
+                <div class="metric">
+                    <div class="metric-label">用户ID</div>
+                    <div class="metric-value" style="font-size: 16px;">${userId || '未设置'}</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">网络状态</div>
+                    <div class="metric-value" style="font-size: 16px;">
+                        ${navigator.onLine ? '<span class="status success">在线</span>' : '<span class="status error">离线</span>'}
+                    </div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">平台</div>
+                    <div class="metric-value" style="font-size: 16px;">${navigator.platform}</div>
+                </div>
+            `;
+
+            display.innerHTML = html;
+        }
+
+        // 清空本地缓存
+        function clearLocalStorage() {
+            if (confirm('确定要清空本地缓存吗？这将删除用户ID。')) {
+                localStorage.removeItem('game_user_id');
+                alert('本地缓存已清空');
+                checkLocalStatus();
+            }
+        }
+
+        // 页面加载时自动检查
+        window.onload = function() {
+            checkConnection();
+            checkLocalStatus();
+        };
+    </script>
+</body>
+</html>

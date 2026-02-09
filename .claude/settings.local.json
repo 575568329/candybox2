@@ -15,7 +15,10 @@
       "Bash(netstat:*)",
       "mcp__zread__read_file",
       "Bash(git pull:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(test:*)",
+      "Bash(pnpm xlsx2json:*)",
+      "Bash(npx pnpm:*)"
     ]
   }
 }
