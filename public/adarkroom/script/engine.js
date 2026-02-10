@@ -178,21 +178,7 @@
         .click(Engine.share)
         .appendTo(menu);
 
-      $('<span>')
-        .addClass('menuBtn')
-        .text(_('save.'))
-        .click(Engine.exportImport)
-        .appendTo(menu);
-
-      if(this.options.dropbox && Engine.Dropbox) {
-        this.dropbox = Engine.Dropbox.init();
-
-        $('<span>')
-          .addClass('menuBtn')
-          .text(_('dropbox.'))
-          .click(Engine.Dropbox.startDropbox)
-          .appendTo(menu);
-      }
+      // 移除了手动保存按钮 - 游戏已自动保存到uTools云存储
 
       $('<span>')
         .addClass('menuBtn')
@@ -278,7 +264,17 @@
           $('#saveNotify').css('opacity', 1).animate({opacity: 0}, 1000, 'linear');
           Engine._lastNotify = Date.now();
         }
-        localStorage.gameState = JSON.stringify(State);
+
+        // 序列化游戏状态
+        var gameStateStr = JSON.stringify(State);
+
+        // 保存到localStorage（备份）
+        localStorage.gameState = gameStateStr;
+
+        // 同步到uTools云存储
+        if(window.UToolsSaveManager) {
+          window.UToolsSaveManager.saveToUTools(gameStateStr);
+        }
       }
     },
 
@@ -294,6 +290,23 @@
         State = {};
         $SM.set('version', Engine.VERSION);
         Engine.event('progress', 'new game');
+      }
+    },
+
+    // 新增：从字符串加载游戏状态（供uTools适配器使用）
+    loadGameFromString: function(gameStateStr) {
+      try {
+        var savedState = JSON.parse(gameStateStr);
+        if(savedState) {
+          State = savedState;
+          $SM.updateOldState();
+          Engine.log("loaded save from uTools!");
+          return true;
+        }
+        return false;
+      } catch(e) {
+        console.error('Failed to load game from string:', e);
+        return false;
       }
     },
 
