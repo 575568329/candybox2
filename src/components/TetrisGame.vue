@@ -83,12 +83,18 @@ const swapDropKeys = ref(false) // 是否互换软降和硬降按键
 const keysPressed = ref({
   ArrowLeft: false,
   ArrowRight: false,
-  ArrowDown: false
+  ArrowDown: false,
+  KeyA: false,
+  KeyD: false,
+  KeyS: false
 })
 const lastMoveTime = ref({
   ArrowLeft: 0,
   ArrowRight: 0,
-  ArrowDown: 0
+  ArrowDown: 0,
+  KeyA: 0,
+  KeyD: 0,
+  KeyS: 0
 })
 const MOVE_INTERVAL = 150 // 移动间隔（毫秒）
 
@@ -412,28 +418,34 @@ const gameLoop = (currentTime) => {
   }
 
   // 处理方向键移动（统一在游戏循环中处理，避免重复触发）
-  if (keysPressed.value.ArrowLeft) {
-    const timeSinceLastMove = currentTime - lastMoveTime.value.ArrowLeft
-    if (lastMoveTime.value.ArrowLeft === 0 || timeSinceLastMove > MOVE_INTERVAL) {
+  // 左移（ArrowLeft 和 A 键）
+  if (keysPressed.value.ArrowLeft || keysPressed.value.KeyA) {
+    const leftKey = keysPressed.value.ArrowLeft ? 'ArrowLeft' : 'KeyA'
+    const timeSinceLastMove = currentTime - lastMoveTime.value[leftKey]
+    if (lastMoveTime.value[leftKey] === 0 || timeSinceLastMove > MOVE_INTERVAL) {
       movePiece('left')
-      lastMoveTime.value.ArrowLeft = currentTime
+      lastMoveTime.value[leftKey] = currentTime
     }
   }
 
-  if (keysPressed.value.ArrowRight) {
-    const timeSinceLastMove = currentTime - lastMoveTime.value.ArrowRight
-    if (lastMoveTime.value.ArrowRight === 0 || timeSinceLastMove > MOVE_INTERVAL) {
+  // 右移（ArrowRight 和 D 键）
+  if (keysPressed.value.ArrowRight || keysPressed.value.KeyD) {
+    const rightKey = keysPressed.value.ArrowRight ? 'ArrowRight' : 'KeyD'
+    const timeSinceLastMove = currentTime - lastMoveTime.value[rightKey]
+    if (lastMoveTime.value[rightKey] === 0 || timeSinceLastMove > MOVE_INTERVAL) {
       movePiece('right')
-      lastMoveTime.value.ArrowRight = currentTime
+      lastMoveTime.value[rightKey] = currentTime
     }
   }
 
-  if (keysPressed.value.ArrowDown && !swapDropKeys.value) {
-    // 只有当 ArrowDown 是缓降键时才支持长按
-    const timeSinceLastMove = currentTime - lastMoveTime.value.ArrowDown
-    if (lastMoveTime.value.ArrowDown === 0 || timeSinceLastMove > MOVE_INTERVAL) {
+  // 缓降（ArrowDown 和 S 键）
+  if ((keysPressed.value.ArrowDown || keysPressed.value.KeyS) && !swapDropKeys.value) {
+    const downKey = keysPressed.value.ArrowDown ? 'ArrowDown' : 'KeyS'
+    // 只有当 ArrowDown/KeyS 是缓降键时才支持长按
+    const timeSinceLastMove = currentTime - lastMoveTime.value[downKey]
+    if (lastMoveTime.value[downKey] === 0 || timeSinceLastMove > MOVE_INTERVAL) {
       softDrop()
-      lastMoveTime.value.ArrowDown = currentTime
+      lastMoveTime.value[downKey] = currentTime
     }
   }
 
@@ -455,9 +467,15 @@ const startGame = () => {
   keysPressed.value.ArrowLeft = false
   keysPressed.value.ArrowRight = false
   keysPressed.value.ArrowDown = false
+  keysPressed.value.KeyA = false
+  keysPressed.value.KeyD = false
+  keysPressed.value.KeyS = false
   lastMoveTime.value.ArrowLeft = 0
   lastMoveTime.value.ArrowRight = 0
   lastMoveTime.value.ArrowDown = 0
+  lastMoveTime.value.KeyA = 0
+  lastMoveTime.value.KeyD = 0
+  lastMoveTime.value.KeyS = 0
 
   spawnPiece()
   lastTime = performance.now()
@@ -479,9 +497,15 @@ const restartGame = () => {
   keysPressed.value.ArrowLeft = false
   keysPressed.value.ArrowRight = false
   keysPressed.value.ArrowDown = false
+  keysPressed.value.KeyA = false
+  keysPressed.value.KeyD = false
+  keysPressed.value.KeyS = false
   lastMoveTime.value.ArrowLeft = 0
   lastMoveTime.value.ArrowRight = 0
   lastMoveTime.value.ArrowDown = 0
+  lastMoveTime.value.KeyA = 0
+  lastMoveTime.value.KeyD = 0
+  lastMoveTime.value.KeyS = 0
 
   spawnPiece()
   lastTime = performance.now()
@@ -516,6 +540,9 @@ const handleWindowBlur = () => {
   keysPressed.value.ArrowLeft = false
   keysPressed.value.ArrowRight = false
   keysPressed.value.ArrowDown = false
+  keysPressed.value.KeyA = false
+  keysPressed.value.KeyD = false
+  keysPressed.value.KeyS = false
   // 如果游戏正在进行且未暂停，自动暂停
   if (isPlaying.value && !isPaused.value && !gameOver.value) {
     isPaused.value = true
@@ -536,6 +563,9 @@ const handleVisibilityChange = () => {
     keysPressed.value.ArrowLeft = false
     keysPressed.value.ArrowRight = false
     keysPressed.value.ArrowDown = false
+    keysPressed.value.KeyA = false
+    keysPressed.value.KeyD = false
+    keysPressed.value.KeyS = false
     // 页面隐藏时自动暂停
     if (isPlaying.value && !isPaused.value && !gameOver.value) {
       isPaused.value = true
@@ -989,28 +1019,37 @@ const handleKeyDown = (event) => {
   // 游戏中的快捷键
   switch (event.key) {
     case 'ArrowLeft':
+    case 'a':
+    case 'A':
       event.preventDefault()
-      if (!keysPressed.value.ArrowLeft) {
-        keysPressed.value.ArrowLeft = true
-        lastMoveTime.value.ArrowLeft = 0 // 重置移动时间，让游戏循环立即移动
+      const leftKey = event.key === 'ArrowLeft' ? 'ArrowLeft' : 'KeyA'
+      if (!keysPressed.value[leftKey]) {
+        keysPressed.value[leftKey] = true
+        lastMoveTime.value[leftKey] = 0 // 重置移动时间，让游戏循环立即移动
       }
       break
     case 'ArrowRight':
+    case 'd':
+    case 'D':
       event.preventDefault()
-      if (!keysPressed.value.ArrowRight) {
-        keysPressed.value.ArrowRight = true
-        lastMoveTime.value.ArrowRight = 0 // 重置移动时间，让游戏循环立即移动
+      const rightKey = event.key === 'ArrowRight' ? 'ArrowRight' : 'KeyD'
+      if (!keysPressed.value[rightKey]) {
+        keysPressed.value[rightKey] = true
+        lastMoveTime.value[rightKey] = 0 // 重置移动时间，让游戏循环立即移动
       }
       break
     case 'ArrowDown':
+    case 's':
+    case 'S':
       event.preventDefault()
+      const downKey = event.key === 'ArrowDown' ? 'ArrowDown' : 'KeyS'
       // 根据配置决定缓降还是硬降
       if (swapDropKeys.value) {
         hardDrop() // 互换后：向下键硬降
       } else {
-        if (!keysPressed.value.ArrowDown) {
-          keysPressed.value.ArrowDown = true
-          lastMoveTime.value.ArrowDown = 0 // 重置移动时间，让游戏循环立即移动
+        if (!keysPressed.value[downKey]) {
+          keysPressed.value[downKey] = true
+          lastMoveTime.value[downKey] = 0 // 重置移动时间，让游戏循环立即移动
         }
       }
       break
@@ -1024,6 +1063,8 @@ const handleKeyDown = (event) => {
       }
       break
     case 'ArrowUp':
+    case 'w':
+    case 'W':
       event.preventDefault()
       rotate()
       break
@@ -1044,8 +1085,20 @@ const handleKeyDown = (event) => {
 
 // 按键释放处理（用于长按支持）
 const handleKeyUp = (event) => {
-  if (keysPressed.value.hasOwnProperty(event.key)) {
-    keysPressed.value[event.key] = false
+  const keyMap = {
+    'ArrowLeft': 'ArrowLeft',
+    'ArrowRight': 'ArrowRight',
+    'ArrowDown': 'ArrowDown',
+    'a': 'KeyA',
+    'A': 'KeyA',
+    'd': 'KeyD',
+    'D': 'KeyD',
+    's': 'KeyS',
+    'S': 'KeyS'
+  }
+  const mappedKey = keyMap[event.key] || event.key
+  if (keysPressed.value.hasOwnProperty(mappedKey)) {
+    keysPressed.value[mappedKey] = false
   }
 }
 
@@ -1336,10 +1389,10 @@ onUnmounted(() => {
             <h3>操作</h3>
             <div class="control-list">
               <div class="control-item">Enter 开始/暂停</div>
-              <div class="control-item">← → 移动</div>
-              <div class="control-item">↑ 旋转</div>
+              <div class="control-item">← → / A D 移动</div>
+              <div class="control-item">↑ / W 旋转</div>
               <div class="control-item">
-                ↓ {{ swapDropKeys ? '硬降' : '缓降' }}
+                ↓ / S {{ swapDropKeys ? '硬降' : '缓降' }}
               </div>
               <div class="control-item">
                 空格 {{ swapDropKeys ? '缓降' : '硬降' }}
@@ -1349,7 +1402,7 @@ onUnmounted(() => {
             </div>
             <!-- 按键互换开关 -->
             <div class="swap-keys-toggle">
-              <div class="toggle-label">互换按键</div>
+              <div class="toggle-label">软硬互换</div>
               <button
                 class="toggle-button"
                 :class="{ active: swapDropKeys }"
