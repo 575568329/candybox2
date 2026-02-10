@@ -145,7 +145,7 @@ onUnmounted(() => {
     <div class="game-container">
       <iframe
         ref="iframeRef"
-        src="/lifeRestart/index.html"
+        src="lifeRestart/index.html"
         class="game-iframe"
         title="Life Restart"
         frameborder="0"
