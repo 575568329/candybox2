@@ -1,6 +1,7 @@
 /**
  * AI控制器
  * 控制AI球球的行为
+ * 优化逻辑：多威胁避让、分身猎杀、食物发育、病毒避让
  */
 
 export class AIController {
@@ -10,9 +11,9 @@ export class AIController {
 
     // 行为参数
     this.behavior = {
-      // 攻击性（0-1）
+      // 攻击性（0-1）: 影响追逐频率和分身猎杀意愿
       aggressiveness: behavior.aggressiveness || 0.5,
-      // 躲避能力（0-1）
+      // 躲避能力（0-1）: 影响发现威胁的距离和避让优先级
       evasion: behavior.evasion || 0.5,
       // 分身使用频率（0-1）
       splitUsage: behavior.splitUsage || 0.3,
@@ -23,233 +24,217 @@ export class AIController {
     }
 
     // 状态
-    this.state = 'wandering' // wandering, chasing, fleeing
+    this.state = 'wandering' // wandering, chasing, fleeing, eating, split_killing
     this.target = null
     this.lastDecision = 0
     this.decisionCooldown = this.behavior.reactionTime / 1000
 
     // 目标点（用于游走）
     this.wanderTarget = this.getRandomPosition()
+    
+    // 视觉范围
+    this.visionRange = 800
   }
 
   /**
    * 更新AI决策
    */
-  update(deltaTime, allBalls, foods) {
+  update(deltaTime, allBalls, foods, viruses = []) {
     this.lastDecision += deltaTime
 
     // 定期做出决策
     if (this.lastDecision >= this.decisionCooldown) {
       this.lastDecision = 0
-      this.makeDecision(allBalls, foods)
+      this.makeDecision(allBalls, foods, viruses)
     }
 
     // 执行当前状态的行为
-    this.executeBehavior(allBalls)
+    this.executeBehavior(allBalls, viruses)
   }
 
   /**
    * 做决策
    */
-  makeDecision(allBalls, foods) {
-    // 找到附近的球球
-    const nearbyBalls = this.findNearbyBalls(allBalls, 500)
+  makeDecision(allBalls, foods, viruses = []) {
+    // 1. 环境感知
+    const nearbyBalls = this.findNearbyBalls(allBalls, this.visionRange)
+    const nearbyViruses = viruses.filter(v => this.getDistance(this.ball, v) < 500)
 
-    // 找到威胁（比自己大的球）
+    // 2. 识别威胁 (比自己大 1.2 倍的球)
     const threats = nearbyBalls.filter(b => b.mass > this.ball.mass * 1.2)
-
-    // 找到猎物（比自己小的球）
+    
+    // 3. 识别猎物 (比自己小 0.8 倍的球)
     const prey = nearbyBalls.filter(b => b.mass < this.ball.mass * 0.8)
 
-    // 决策优先级
-    if (threats.length > 0 && Math.random() < this.behavior.evasion) {
-      // 躲避威胁
+    // 4. 决策逻辑优先级
+
+    // A. 逃跑优先级最高
+    if (threats.length > 0) {
       this.state = 'fleeing'
-      this.target = this.getFleeTarget(threats)
-    } else if (prey.length > 0 && Math.random() < this.behavior.aggressiveness) {
-      // 追逐猎物
+      this.target = threats // 逃跑时处理多个威胁
+      return
+    }
+
+    // B. 避让病毒 (如果自己足够大)
+    if (this.ball.mass > 130) {
+      const dangerousViruses = nearbyViruses.filter(v => this.getDistance(this.ball, v) < this.ball.radius + 50)
+      if (dangerousViruses.length > 0) {
+        this.state = 'fleeing'
+        this.target = dangerousViruses
+        return
+      }
+    }
+
+    // C. 尝试分身猎杀 (Aggressive AI 特有)
+    if (this.canUseSplit() && Math.random() < this.behavior.aggressiveness) {
+      const splitTarget = prey.find(p => {
+        const dist = this.getDistance(this.ball, p)
+        // 分身距离大约是 radius * 4 到 6
+        return dist < this.ball.radius * 5 && p.mass < (this.ball.mass / 2) * 0.8
+      })
+      if (splitTarget) {
+        this.state = 'split_killing'
+        this.target = splitTarget
+        return
+      }
+    }
+
+    // D. 追逐最近猎物
+    if (prey.length > 0 && Math.random() < this.behavior.aggressiveness) {
       this.state = 'chasing'
       this.target = this.getClosestBall(prey)
-    } else {
-      // 游走
-      this.state = 'wandering'
-      this.target = null
-      if (Math.random() < 0.3) {
-        this.wanderTarget = this.getRandomPosition()
-      }
+      return
+    }
+
+    // E. 寻找食物发育
+    const nearbyFood = this.findNearbyFood(foods, 400)
+    if (nearbyFood.length > 0) {
+      this.state = 'eating'
+      this.target = this.getClosestFood(nearbyFood)
+      return
+    }
+
+    // F. 随机游走
+    this.state = 'wandering'
+    if (Math.random() < 0.2 || this.getDistance(this.ball, this.wanderTarget) < 100) {
+      this.wanderTarget = this.getRandomPosition()
     }
   }
 
   /**
    * 执行行为
    */
-  executeBehavior(allBalls) {
+  executeBehavior(allBalls, viruses) {
     switch (this.state) {
       case 'wandering':
         this.ball.setTarget(this.wanderTarget.x, this.wanderTarget.y)
+        break
 
-        // 接近目标点时生成新的
-        const distToWander = this.getDistance(this.ball, this.wanderTarget)
-        if (distToWander < 50) {
-          this.wanderTarget = this.getRandomPosition()
+      case 'eating':
+        if (this.target) {
+          this.ball.setTarget(this.target.x, this.target.y)
         }
         break
 
       case 'chasing':
         if (this.target && this.target.alive) {
           // 预测目标位置
-          if (this.behavior.prediction > 0.5) {
-            const predictedPos = this.predictPosition(this.target)
-            this.ball.setTarget(predictedPos.x, predictedPos.y)
-          } else {
-            this.ball.setTarget(this.target.x, this.target.y)
-          }
-
-          // 考虑使用分身
-          if (this.canUseSplit() && Math.random() < this.behavior.splitUsage * 0.3) {
-            // 这里需要游戏主循环处理分身
-            this.ball.shouldSplit = true
-          }
+          const predictedPos = this.predictPosition(this.target)
+          this.ball.setTarget(predictedPos.x, predictedPos.y)
         } else {
           this.state = 'wandering'
         }
+        break
+
+      case 'split_killing':
+        if (this.target && this.target.alive) {
+          const predictedPos = this.predictPosition(this.target)
+          this.ball.setTarget(predictedPos.x, predictedPos.y)
+          // 触发分身
+          this.ball.shouldSplit = true
+        }
+        this.state = 'chasing' // 猎杀后转为追逐
         break
 
       case 'fleeing':
-        if (this.target) {
-          const fleePos = this.getFleePosition(this.target)
-          this.ball.setTarget(fleePos.x, fleePos.y)
+        // 多威胁综合避让算法 (向量合成)
+        const fleeVector = { x: 0, y: 0 }
+        const sources = Array.isArray(this.target) ? this.target : [this.target]
+        
+        sources.forEach(src => {
+          const dx = this.ball.x - src.x
+          const dy = this.ball.y - src.y
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1
+          // 距离越近，斥力越大 (平方反比)
+          const force = 1000 / (dist * dist)
+          fleeVector.x += (dx / dist) * force
+          fleeVector.y += (dy / dist) * force
+        })
 
-          // 被追时考虑分身逃跑
-          if (this.canUseSplit() && Math.random() < this.behavior.splitUsage * 0.5) {
-            this.ball.shouldSplit = true
-          }
-        } else {
-          this.state = 'wandering'
-        }
+        // 加上边界排斥力
+        const margin = 200
+        if (this.ball.x < margin) fleeVector.x += (margin / this.ball.x)
+        if (this.ball.x > this.map.width - margin) fleeVector.x -= (margin / (this.map.width - this.ball.x))
+        if (this.ball.y < margin) fleeVector.y += (margin / this.ball.y)
+        if (this.ball.y > this.map.height - margin) fleeVector.y -= (margin / (this.map.height - this.ball.y))
+
+        this.ball.setTarget(this.ball.x + fleeVector.x * 100, this.ball.y + fleeVector.y * 100)
         break
     }
-  }
-
-  /**
-   * 找到附近的球球
-   */
-  findNearbyBalls(allBalls, range) {
-    return allBalls.filter(ball => {
-      if (ball === this.ball || !ball.alive) return false
-      const dist = this.getDistance(this.ball, ball)
-      return dist < range
-    })
-  }
-
-  /**
-   * 获取最近的球球
-   */
-  getClosestBall(balls) {
-    let closest = null
-    let minDist = Infinity
-
-    balls.forEach(ball => {
-      const dist = this.getDistance(this.ball, ball)
-      if (dist < minDist) {
-        minDist = dist
-        closest = ball
-      }
-    })
-
-    return closest
-  }
-
-  /**
-   * 获取逃跑目标
-   */
-  getFleeTarget(threats) {
-    // 找到最危险的威胁
-    let mostDangerous = threats[0]
-    let maxMass = threats[0].mass
-
-    threats.forEach(ball => {
-      if (ball.mass > maxMass) {
-        maxMass = ball.mass
-        mostDangerous = ball
-      }
-    })
-
-    return mostDangerous
-  }
-
-  /**
-   * 获取逃跑位置
-   */
-  getFleePosition(threat) {
-    // 向威胁的反方向移动
-    const dx = this.ball.x - threat.x
-    const dy = this.ball.y - threat.y
-    const distance = Math.sqrt(dx * dx + dy * dy)
-
-    if (distance > 0) {
-      const fleeDistance = 200
-      return {
-        x: this.ball.x + (dx / distance) * fleeDistance,
-        y: this.ball.y + (dy / distance) * fleeDistance
-      }
-    }
-
-    return this.getRandomPosition()
   }
 
   /**
    * 预测目标位置
    */
   predictPosition(target) {
-    if (this.behavior.prediction < 0.3) {
-      return { x: target.x, y: target.y }
-    }
-
+    if (this.behavior.prediction < 0.1) return { x: target.x, y: target.y }
+    
     // 简单的线性预测
-    const predictionTime = this.behavior.prediction * 0.5 // 秒
+    const pTime = 0.5 * this.behavior.prediction
     return {
-      x: target.x + target.velocity.x * 60 * predictionTime,
-      y: target.y + target.velocity.y * 60 * predictionTime
+      x: target.x + (target.velocity?.x || 0) * 60 * pTime,
+      y: target.y + (target.velocity?.y || 0) * 60 * pTime
     }
   }
 
   /**
-   * 获取随机位置
+   * 基础辅助方法
    */
+  getDistance(p1, p2) {
+    return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2))
+  }
+
+  findNearbyBalls(all, range) {
+    return all.filter(b => b !== this.ball && b.alive && this.getDistance(this.ball, b) < range)
+  }
+
+  getClosestBall(balls) {
+    return balls.reduce((closest, curr) => {
+      const d = this.getDistance(this.ball, curr)
+      return (!closest || d < this.getDistance(this.ball, closest)) ? curr : closest
+    }, null)
+  }
+
+  findNearbyFood(foods, range) {
+    return foods.filter(f => this.getDistance(this.ball, f) < range)
+  }
+
+  getClosestFood(foods) {
+    return foods.reduce((closest, curr) => {
+      const d = this.getDistance(this.ball, curr)
+      return (!closest || d < this.getDistance(this.ball, closest)) ? curr : closest
+    }, null)
+  }
+
   getRandomPosition() {
-    const margin = 100
+    const m = 100
     return {
-      x: margin + Math.random() * (this.map.width - margin * 2),
-      y: margin + Math.random() * (this.map.height - margin * 2)
+      x: m + Math.random() * (this.map.width - m * 2),
+      y: m + Math.random() * (this.map.height - m * 2)
     }
   }
 
-  /**
-   * 计算距离
-   */
-  getDistance(ball1, ball2) {
-    const dx = ball1.x - ball2.x
-    const dy = ball1.y - ball2.y
-    return Math.sqrt(dx * dx + dy * dy)
-  }
-
-  /**
-   * 检查是否可以使用分身
-   */
   canUseSplit() {
-    return this.ball.splitCooldown <= 0 &&
-           this.ball.mass >= 35 &&
-           !this.ball.shouldSplit
-  }
-
-  /**
-   * 重置状态
-   */
-  reset() {
-    this.state = 'wandering'
-    this.target = null
-    this.lastDecision = 0
-    this.wanderTarget = this.getRandomPosition()
+    return this.ball.splitCooldown <= 0 && this.ball.mass > 60 && !this.ball.shouldSplit
   }
 }

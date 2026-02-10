@@ -329,7 +329,7 @@ onMounted(async () => {
   }
 
   // 初始化 iframe URL（使用正确的槽位）
-  iframeUrl.value = `/candybox2-game.html?slot=${initialSlot}`
+  iframeUrl.value = `candybox2-game.html?slot=${initialSlot}`
 })
 
 onUnmounted(async () => {

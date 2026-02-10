@@ -436,7 +436,10 @@ const difficulties = [
         <div v-if="gameState === 'paused'" class="pause-overlay">
           <div class="pause-content">
             <h2>⏸️ 游戏暂停</h2>
-            <button class="resume-btn" @click="togglePause">继续游戏</button>
+            <div class="pause-actions">
+              <button class="resume-btn" @click="togglePause">继续游戏</button>
+              <button class="quit-btn" @click="backToMenu">退出游戏</button>
+            </div>
           </div>
         </div>
       </div>
@@ -881,8 +884,31 @@ const difficulties = [
   transition: all 0.2s;
 }
 
+.quit-btn {
+  padding: 15px 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
 .resume-btn:hover {
   transform: scale(1.05);
+}
+
+.quit-btn:hover {
+  background: rgba(244, 67, 54, 0.2);
+  border-color: #f44336;
+  transform: scale(1.05);
+}
+
+.pause-actions {
+  display: flex;
+  gap: 20px;
 }
 
 /* 准备开始界面 */

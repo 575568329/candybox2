@@ -26,6 +26,11 @@ export function checkBallFoodCollision(ball, food) {
  * 检查球球是否可以吞噬另一个球球
  */
 export function canEat(ball1, ball2) {
+  // 正在死亡的球球不能参与吞噬逻辑
+  if (ball1.isDying || ball2.isDying) {
+    return false
+  }
+
   // 必须比对方大至少20%
   if (ball1.mass <= ball2.mass * 1.2) {
     return false
@@ -75,21 +80,23 @@ export function handleVirusCollision(ball, virus) {
   }
 
   // 如果球球比病毒大，会分裂成多个小球
-  const splitCount = Math.min(8, Math.floor(ball.mass / virus.mass))
-  const newMass = ball.mass / (splitCount + 1)
+  const splitCount = Math.min(12, Math.floor(ball.mass / 20))
+  const newMass = ball.mass / splitCount
 
   const splitBalls = []
 
   for (let i = 0; i < splitCount; i++) {
     const angle = (i * Math.PI * 2) / splitCount
+    // 爆炸式初速
+    const explosionForce = 15 + Math.random() * 15
     const splitBall = {
-      x: ball.x + Math.cos(angle) * ball.radius,
-      y: ball.y + Math.sin(angle) * ball.radius,
+      x: ball.x + Math.cos(angle) * ball.radius * 0.5,
+      y: ball.y + Math.sin(angle) * ball.radius * 0.5,
       mass: newMass,
       color: ball.color,
       velocity: {
-        x: Math.cos(angle) * 5,
-        y: Math.sin(angle) * 5
+        x: Math.cos(angle) * explosionForce,
+        y: Math.sin(angle) * explosionForce
       }
     }
     splitBalls.push(splitBall)

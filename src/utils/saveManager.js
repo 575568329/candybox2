@@ -270,10 +270,6 @@ export class SaveGameManager {
    */
   async clearSave(gameId) {
     try {
-      if (!window.utools) {
-        throw new Error('请在 uTools 环境中使用')
-      }
-
       const savePrefix = this.getGameSavePrefix(gameId)
       const docs = await this.getAllDocs(savePrefix)
 

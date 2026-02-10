@@ -100,20 +100,20 @@ const games = ref([
     players: '单人',
     isVueComponent: true
   },
-  {
-    id: 'ballbattle',
-    name: '球球大作战',
-    englishName: 'Ball Battle',
-    description: '吞噬彩豆和对手，成为地图霸主！支持排行榜和AI对战',
-    icon: '⚽',
-    path: '/ballbattle',
-    color: '#FF6B6B',
-    category: 'action',
-    tags: ['动作', '策略', '竞技', '排行榜'],
-    difficulty: '中等',
-    players: '单人/AI对战',
-    isVueComponent: true
-  }
+  // {
+  //   id: 'ballbattle',
+  //   name: '球球大作战',
+  //   englishName: 'Ball Battle',
+  //   description: '吞噬彩豆和对手，成为地图霸主！支持排行榜和AI对战',
+  //   icon: '⚽',
+  //   path: '/ballbattle',
+  //   color: '#FF6B6B',
+  //   category: 'action',
+  //   tags: ['动作', '策略', '竞技', '排行榜'],
+  //   difficulty: '中等',
+  //   players: '单人/AI对战',
+  //   isVueComponent: true
+  // }
 ])
 
 // 筛选后的游戏列表

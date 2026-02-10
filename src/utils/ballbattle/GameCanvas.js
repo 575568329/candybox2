@@ -15,10 +15,10 @@ export class GameCanvas {
 
     // 游戏配置
     this.config = {
-      mapWidth: 3000,
-      mapHeight: 3000,
-      foodCount: 500,
-      virusCount: 10,
+      mapWidth: 6000,
+      mapHeight: 6000,
+      foodCount: 1500,
+      virusCount: 30,
       ...options
     }
 
@@ -58,6 +58,17 @@ export class GameCanvas {
       maxMass: 50
     }
 
+    // 死亡延迟处理
+    this.deathTimer = 0
+    this.deathDelay = 1.5 // 1.5秒延迟，看完吞噬动画
+
+    // 碰撞优化
+    this.collisionGrid = new CollisionGrid(
+      this.config.mapWidth,
+      this.config.mapHeight,
+      200 // 每个单元格 200px
+    )
+
     // 回调
     this.onGameOver = null
     this.onStatsUpdate = null
@@ -81,6 +92,7 @@ export class GameCanvas {
     this.viruses = []
     this.aiControllers = []
     this.gameTime = 0
+    this.deathTimer = 0
     this.gameOver = false
     this.paused = false
 
@@ -140,7 +152,7 @@ export class GameCanvas {
       const y = Math.random() * this.config.mapHeight
 
       const ball = new Ball(x, y, aiData.mass, this.getRandomColor(), {
-        name: aiData.name,
+        name: aiData.name || '',
         skin: aiData.skin || 'default',
         isAI: true
       })
@@ -148,7 +160,7 @@ export class GameCanvas {
       this.balls.push(ball)
 
       // 创建AI控制器，传递完整的配置对象
-      const controller = new AIController(ball, this.config, aiData.behavior)
+      const controller = new AIController(ball, { width: this.config.mapWidth, height: this.config.mapHeight }, aiData.behavior)
       this.aiControllers.push(controller)
     })
   }
@@ -160,25 +172,33 @@ export class GameCanvas {
     for (let i = 0; i < count; i++) {
       const x = Math.random() * this.config.mapWidth
       const y = Math.random() * this.config.mapHeight
-      const mass = 50 + Math.random() * 200
+      // 初始质量随机化，增加多样性
+      const mass = 20 + Math.random() * 150
 
       const ball = new Ball(x, y, mass, this.getRandomColor(), {
-        name: this.getRandomName(),
+        name: '', // AI 默认没名字，更干净
         skin: 'default',
         isAI: true
       })
 
       this.balls.push(ball)
 
-      // 创建AI控制器
-      const controller = new AIController(ball, this.config, {
-        aggressiveness: 0.3 + Math.random() * 0.4,
-        evasion: 0.3 + Math.random() * 0.4,
-        splitUsage: 0.2 + Math.random() * 0.3,
-        reactionTime: 400 + Math.random() * 400,
-        prediction: Math.random() * 0.4
-      })
+      // 不同的 AI 性格
+      const personality = Math.random()
+      let behavior = {}
+      
+      if (personality > 0.8) {
+        // 掠食者型：高攻击，高预测
+        behavior = { aggressiveness: 0.9, evasion: 0.4, splitUsage: 0.8, reactionTime: 200, prediction: 0.8 }
+      } else if (personality < 0.2) {
+        // 猥琐发育型：高避让，低攻击
+        behavior = { aggressiveness: 0.2, evasion: 0.9, splitUsage: 0.1, reactionTime: 300, prediction: 0.2 }
+      } else {
+        // 平衡型
+        behavior = { aggressiveness: 0.5, evasion: 0.6, splitUsage: 0.4, reactionTime: 400, prediction: 0.4 }
+      }
 
+      const controller = new AIController(ball, { width: this.config.mapWidth, height: this.config.mapHeight }, behavior)
       this.aiControllers.push(controller)
     }
   }
@@ -219,15 +239,15 @@ export class GameCanvas {
     this.endlessSpawner = setInterval(() => {
       if (!this.running || this.gameOver) return
 
-      // 每30秒生成一个新AI
-      const mass = this.player.mass * (0.8 + Math.random() * 0.4)
+      // 每15秒生成一个新AI (缩短时间，更密集)
+      const mass = Math.max(20, this.player.mass * (0.5 + Math.random() * 1.5))
       const ball = new Ball(
         Math.random() * this.config.mapWidth,
         Math.random() * this.config.mapHeight,
         mass,
         this.getRandomColor(),
         {
-          name: this.getRandomName(),
+          name: '',
           skin: 'default',
           isAI: true
         }
@@ -235,21 +255,24 @@ export class GameCanvas {
 
       this.balls.push(ball)
 
-      const controller = new AIController(ball, this.config, {
-        aggressiveness: 0.5,
-        evasion: 0.5,
-        splitUsage: 0.3,
-        reactionTime: 500,
-        prediction: 0.3
-      })
+      // 随时间增加，AI 会越来越强
+      const difficultyFactor = Math.min(1, this.gameTime / 600) // 10分钟达到最大难度
+      const behavior = {
+        aggressiveness: 0.4 + difficultyFactor * 0.5,
+        evasion: 0.4 + difficultyFactor * 0.5,
+        splitUsage: 0.2 + difficultyFactor * 0.6,
+        reactionTime: 500 - difficultyFactor * 300,
+        prediction: 0.2 + difficultyFactor * 0.7
+      }
 
+      const controller = new AIController(ball, { width: this.config.mapWidth, height: this.config.mapHeight }, behavior)
       this.aiControllers.push(controller)
 
       // 通知外部
       if (this.onAISpawn) {
-        this.onAISpawn(ball.name)
+        this.onAISpawn('神秘挑战者')
       }
-    }, 30000)
+    }, 15000)
   }
 
   /**
@@ -293,9 +316,11 @@ export class GameCanvas {
     }
 
     // 更新玩家目标
-    const worldMouseX = (this.mouseX - this.camera.centerX) / this.camera.zoom + this.camera.x
-    const worldMouseY = (this.mouseY - this.camera.centerY) / this.camera.zoom + this.camera.y
-    this.player.setTarget(worldMouseX, worldMouseY)
+    if (this.player.alive && !this.player.isDying) {
+      const worldMouseX = (this.mouseX - this.camera.centerX) / this.camera.zoom + this.camera.x
+      const worldMouseY = (this.mouseY - this.camera.centerY) / this.camera.zoom + this.camera.y
+      this.player.setTarget(worldMouseX, worldMouseY)
+    }
 
     // 更新所有球球
     this.balls.forEach(ball => {
@@ -311,10 +336,17 @@ export class GameCanvas {
       }
     })
 
+    // 更新碰撞网格（每帧更新一次）
+    this.collisionGrid.clear()
+    this.balls.forEach(ball => {
+      if (ball.alive) this.collisionGrid.add(ball)
+    })
+
     // 更新AI控制器
     this.aiControllers.forEach((controller, index) => {
       if (controller.ball.alive) {
-        controller.update(deltaTime, this.balls, this.foods)
+        // AI 决策也可以利用附近的球球，但目前先保持现状或传入附近球球
+        controller.update(deltaTime, this.balls, this.foods, this.viruses)
       } else {
         this.aiControllers.splice(index, 1)
       }
@@ -326,30 +358,40 @@ export class GameCanvas {
     // 更新病毒
     this.viruses.forEach(virus => virus.update(deltaTime))
 
-    // 碰撞检测：球球与食物
+    // 碰撞检测优化：球球与食物
     this.balls.forEach(ball => {
       if (!ball.alive) return
 
+      // 只检查球球所在网格单元及相邻单元的食物？
+      // 目前 Food 没有加入网格，但我们可以通过位置快速过滤
       for (let i = this.foods.length - 1; i >= 0; i--) {
         const food = this.foods[i]
+        // 快速包围盒检查
+        if (Math.abs(ball.x - food.x) > ball.radius + 10) continue
+        if (Math.abs(ball.y - food.y) > ball.radius + 10) continue
+
         if (checkBallFoodCollision(ball, food)) {
           handleFoodEat(ball, food)
           this.foods.splice(i, 1)
-          // 补充食物
           this.spawnFood()
         }
       }
     })
 
-    // 碰撞检测：球球与球球
-    for (let i = 0; i < this.balls.length; i++) {
-      for (let j = i + 1; j < this.balls.length; j++) {
-        const ball1 = this.balls[i]
-        const ball2 = this.balls[j]
+    // 碰撞检测优化：球球与球球 (使用 CollisionGrid)
+    const checkedPairs = new Set()
+    this.balls.forEach(ball1 => {
+      if (!ball1.alive || ball1.isDying) return
 
-        if (!ball1.alive || !ball2.alive) continue
+      const potentialBalls = this.collisionGrid.getPotentialCollisions(ball1)
+      potentialBalls.forEach(ball2 => {
+        if (!ball2.alive || ball2.isDying || ball1 === ball2) return
 
-        // 检查是否可以吞噬
+        // 唯一键避免重复检测
+        const pairKey = ball1.id < ball2.id ? `${ball1.id}-${ball2.id}` : `${ball2.id}-${ball1.id}`
+        if (checkedPairs.has(pairKey)) return
+        checkedPairs.add(pairKey)
+
         if (canEat(ball1, ball2)) {
           handleEat(ball1, ball2)
           if (ball2 === this.player) {
@@ -365,33 +407,55 @@ export class GameCanvas {
             this.stats.kills++
           }
         }
-      }
-    }
+      })
+    })
 
     // 移除死亡的球球
     this.balls = this.balls.filter(ball => ball.alive)
 
-    // 碰撞检测：球球与病毒
+    // 碰撞检测：球球与病毒 (也可以用网格优化)
     this.balls.forEach(ball => {
       if (!ball.alive) return
 
       this.viruses.forEach(virus => {
+        // 快速过滤
+        if (Math.abs(ball.x - virus.x) > ball.radius + virus.radius) return
+        if (Math.abs(ball.y - virus.y) > ball.radius + virus.radius) return
+
         if (checkVirusCollision(ball, virus)) {
           const splitBalls = handleVirusCollision(ball, virus)
-          if (splitBalls && ball === this.player) {
-            // 玩家撞到病毒
-            splitBalls.forEach(splitData => {
-              const splitBall = new Ball(
-                splitData.x,
-                splitData.y,
-                splitData.mass,
-                ball.color,
-                { name: ball.name, skin: ball.skin }
-              )
-              splitBall.velocity.x = splitData.velocity.x
-              splitBall.velocity.y = splitData.velocity.y
-              this.balls.push(splitBall)
-            })
+          if (splitBalls) {
+            // 撞到病毒后移除原球球或特殊处理？
+            // 在原始游戏中，球球会爆炸成很多小块
+            if (ball === this.player) {
+              splitBalls.forEach(splitData => {
+                const splitBall = new Ball(
+                  splitData.x,
+                  splitData.y,
+                  splitData.mass,
+                  ball.color,
+                  { name: ball.name, skin: ball.skin }
+                )
+                splitBall.velocity.x = splitData.velocity.x
+                splitBall.velocity.y = splitData.velocity.y
+                this.balls.push(splitBall)
+              })
+            } else {
+              // AI 撞到病毒逻辑
+              splitBalls.forEach(splitData => {
+                const splitBall = new Ball(
+                  splitData.x,
+                  splitData.y,
+                  splitData.mass,
+                  ball.color,
+                  { name: ball.name, skin: ball.skin, isAI: true }
+                )
+                splitBall.velocity.x = splitData.velocity.x
+                splitBall.velocity.y = splitData.velocity.y
+                this.balls.push(splitBall)
+              })
+            }
+            ball.getEaten() // 标记死亡
           }
         }
       })
@@ -401,7 +465,7 @@ export class GameCanvas {
     this.updateCamera()
 
     // 检查游戏结束条件
-    this.checkGameOver()
+    this.checkGameOver(deltaTime)
 
     // 更新统计回调
     if (this.onStatsUpdate) {
@@ -413,9 +477,9 @@ export class GameCanvas {
    * 更新相机
    */
   updateCamera() {
-    if (!this.player || !this.player.alive) return
+    if (!this.player) return
 
-    // 相机跟随玩家
+    // 即使玩家死亡，相机也留在原地（或者可以跟随击杀者，但目前保持原地更稳定）
     this.camera.x = this.player.x
     this.camera.y = this.player.y
 
@@ -427,17 +491,16 @@ export class GameCanvas {
   /**
    * 检查游戏结束
    */
-  checkGameOver() {
+  checkGameOver(deltaTime) {
     if (this.gameOver) return
 
-    // 挑战模式：玩家死亡
-    if (this.gameMode === 'challenge' && !this.player.alive) {
-      this.endGame()
-    }
-
-    // 无尽模式：玩家死亡
-    if (this.gameMode === 'endless' && !this.player.alive) {
-      this.endGame()
+    // 如果玩家被吃掉（处于死亡动画中或已经完全死亡），开始计时延迟
+    if (this.player.isDying || !this.player.alive) {
+      this.deathTimer += deltaTime
+      if (this.deathTimer >= this.deathDelay) {
+        this.endGame()
+      }
+      return
     }
 
     // 限时模式：时间到
@@ -507,33 +570,27 @@ export class GameCanvas {
    * 绘制网格
    */
   drawGrid() {
-    const { ctx, camera } = this
-    const gridSize = 50 * camera.zoom
+    const { ctx, camera, canvas } = this
+    const gridSize = 50
+    const scaledGridSize = gridSize * camera.zoom
 
+    // 只在可见区域内绘制网格线
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'
     ctx.lineWidth = 1
 
-    // 计算可见范围
-    const startX = Math.floor((camera.x - camera.centerX / camera.zoom) / 50) * 50
-    const startY = Math.floor((camera.y - camera.centerY / camera.zoom) / 50) * 50
-    const endX = camera.x + camera.centerX / camera.zoom
-    const endY = camera.y + camera.centerY / camera.zoom
+    const offsetX = ((-camera.x * camera.zoom) % scaledGridSize + scaledGridSize) % scaledGridSize
+    const offsetY = ((-camera.y * camera.zoom) % scaledGridSize + scaledGridSize) % scaledGridSize
 
-    for (let x = startX; x < endX; x += 50) {
-      const screenX = (x - camera.x) * camera.zoom + camera.centerX
-      ctx.beginPath()
-      ctx.moveTo(screenX, 0)
-      ctx.lineTo(screenX, this.canvas.height)
-      ctx.stroke()
+    ctx.beginPath()
+    for (let x = offsetX; x <= canvas.width; x += scaledGridSize) {
+      ctx.moveTo(x, 0)
+      ctx.lineTo(x, canvas.height)
     }
-
-    for (let y = startY; y < endY; y += 50) {
-      const screenY = (y - camera.y) * camera.zoom + camera.centerY
-      ctx.beginPath()
-      ctx.moveTo(0, screenY)
-      ctx.lineTo(this.canvas.width, screenY)
-      ctx.stroke()
+    for (let y = offsetY; y <= canvas.height; y += scaledGridSize) {
+      ctx.moveTo(0, y)
+      ctx.lineTo(canvas.width, y)
     }
+    ctx.stroke()
   }
 
   /**
@@ -573,7 +630,12 @@ export class GameCanvas {
 
       ctx.fillStyle = isPlayer ? '#FFD700' : 'rgba(255, 255, 255, 0.8)'
 
-      const text = `${rank}. ${ball.name || 'AI'} - ${Math.floor(ball.mass)}`
+      let name = ball.name
+      if (!name) {
+        name = ball.isAI ? `AI-${ball.id % 1000}` : '未知'
+      }
+
+      const text = `${rank}. ${name} - ${Math.floor(ball.mass)}`
       ctx.fillText(text, 20, y)
       y += 20
     })

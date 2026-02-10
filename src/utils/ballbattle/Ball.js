@@ -4,7 +4,10 @@
  */
 
 export class Ball {
+  static idCounter = 0
+
   constructor(x, y, mass, color, options = {}) {
+    this.id = Ball.idCounter++
     // 位置
     this.x = x
     this.y = y
@@ -22,9 +25,13 @@ export class Ball {
     // 速度
     this.velocity = { x: 0, y: 0 }
     this.targetVelocity = { x: 0, y: 0 }
+    this.friction = 0.95 // 摩擦力
+    this.momentum = options.isEjector ? 0.98 : 0.9 // 动量保持
 
     // 状态
     this.alive = true
+    this.isDying = false
+    this.deathOpacity = 1
     this.splitCooldown = 0
     this.ejectCooldown = 0
 
@@ -54,6 +61,15 @@ export class Ball {
    * 更新球球状态
    */
   update(deltaTime, mapWidth, mapHeight) {
+    if (this.isDying) {
+      this.deathOpacity = Math.max(0, this.deathOpacity - deltaTime * 2)
+      this.mass = Math.max(0, this.mass - deltaTime * 50) // 质量也迅速缩小
+      if (this.deathOpacity <= 0) {
+        this.alive = false
+      }
+      return // 死亡过程中停止移动和其他逻辑
+    }
+
     // 出生动画
     if (this.scale < this.targetScale) {
       this.scale = Math.min(1, this.scale + deltaTime * 3)
@@ -67,20 +83,38 @@ export class Ball {
       this.ejectCooldown -= deltaTime
     }
 
-    // 平滑移动
-    this.velocity.x += (this.targetVelocity.x - this.velocity.x) * 0.1
-    this.velocity.y += (this.targetVelocity.y - this.velocity.y) * 0.1
+    // 平滑移动逻辑优化：组合目标速度和当前动量
+    const speed = this.speed
+    
+    // 增加摩擦力和动量处理
+    if (this.isEjector) {
+      // 孢子主要受惯性影响，逐渐减速
+      this.velocity.x *= this.momentum
+      this.velocity.y *= this.momentum
+    } else {
+      // 普通球球：向目标速度靠拢
+      const accel = 0.1
+      this.velocity.x += (this.targetVelocity.x * speed - this.velocity.x) * accel
+      this.velocity.y += (this.targetVelocity.y * speed - this.velocity.y) * accel
+      
+      // 额外的惯性衰减（如果没有任何目标速度）
+      if (this.targetVelocity.x === 0 && this.targetVelocity.y === 0) {
+        this.velocity.x *= this.friction
+        this.velocity.y *= this.friction
+      }
+    }
 
-    // 应用移动
-    this.x += this.velocity.x * this.speed
-    this.y += this.velocity.y * this.speed
+    // 应用移动 (乘以 60 保持与原来大概一致的像素速度)
+    this.x += this.velocity.x * deltaTime * 60
+    this.y += this.velocity.y * deltaTime * 60
 
     // 边界限制
     this.constrainToMap(mapWidth, mapHeight)
 
-    // 质量自然衰减（过大的球球）
-    if (this.mass > 10000) {
-      this.mass *= 0.9999
+    // 质量自然衰减（过大的球球衰减更快）
+    if (this.mass > 1000) {
+      const decayRate = 0.001 * (this.mass / 5000)
+      this.mass *= (1 - decayRate * deltaTime)
     }
 
     // 脉冲动画
@@ -120,16 +154,27 @@ export class Ball {
     if (this.splitCooldown > 0) return null
     if (this.mass < 35) return null
 
-    this.splitCooldown = 1.5 // 秒
+    this.splitCooldown = 1.0 // 降低冷却到 1 秒
 
     // 质量减半
     const newMass = this.mass / 2
     this.mass = newMass
 
+    // 确定弹出方向
+    let dirX = this.targetVelocity.x
+    let dirY = this.targetVelocity.y
+    
+    // 如果没有移动方向，随机一个
+    if (dirX === 0 && dirY === 0) {
+      const angle = Math.random() * Math.PI * 2
+      dirX = Math.cos(angle)
+      dirY = Math.sin(angle)
+    }
+
     // 创建分身（向前方弹出）
     const splitBall = new Ball(
-      this.x + this.targetVelocity.x * this.radius * 2,
-      this.y + this.targetVelocity.y * this.radius * 2,
+      this.x + dirX * this.radius,
+      this.y + dirY * this.radius,
       newMass,
       this.color,
       {
@@ -139,10 +184,11 @@ export class Ball {
       }
     )
 
-    // 分身有初始速度
-    splitBall.velocity.x = this.targetVelocity.x * 10
-    splitBall.velocity.y = this.targetVelocity.y * 10
-
+    // 分身有初始爆发速度
+    splitBall.velocity.x = dirX * 25
+    splitBall.velocity.y = dirY * 25
+    
+    // 原本体也获得一点反作用力或轻微位移？暂时保持原位
     return splitBall
   }
 
@@ -151,26 +197,35 @@ export class Ball {
    */
   eject() {
     if (this.ejectCooldown > 0) return null
-    if (this.mass < 20) return null
+    if (this.mass < 30) return null // 提高吐球门槛
 
-    this.ejectCooldown = 0.5 // 秒
+    this.ejectCooldown = 0.2 // 降低连发冷却
 
-    // 损失质量
-    const ejectMass = Math.min(15, this.mass * 0.25)
+    // 固定质量消耗
+    const ejectMass = 15
     this.mass -= ejectMass
+
+    // 确定方向
+    let dirX = this.targetVelocity.x
+    let dirY = this.targetVelocity.y
+    if (dirX === 0 && dirY === 0) {
+      const angle = Math.random() * Math.PI * 2
+      dirX = Math.cos(angle)
+      dirY = Math.sin(angle)
+    }
 
     // 创建孢子
     const ejector = new Ball(
-      this.x + this.targetVelocity.x * this.radius,
-      this.y + this.targetVelocity.y * this.radius,
+      this.x + dirX * (this.radius + 15),
+      this.y + dirY * (this.radius + 15),
       ejectMass,
       this.color,
-      { isEjector: true }
+      { isEjector: true, name: '' }
     )
 
-    // 孢子快速向前飞
-    ejector.velocity.x = this.targetVelocity.x * 15
-    ejector.velocity.y = this.targetVelocity.y * 15
+    // 孢子有很高的初始初速，随后因摩擦力减速
+    ejector.velocity.x = dirX * 30
+    ejector.velocity.y = dirY * 30
 
     return ejector
   }
@@ -189,7 +244,11 @@ export class Ball {
    * 被吞噬
    */
   getEaten() {
-    this.alive = false
+    if (this.isDying) return
+    this.isDying = true
+    // 立即停止所有物理运动
+    this.velocity = { x: 0, y: 0 }
+    this.targetVelocity = { x: 0, y: 0 }
   }
 
   /**
@@ -210,6 +269,9 @@ export class Ball {
     }
 
     ctx.save()
+    if (this.isDying) {
+      ctx.globalAlpha = this.deathOpacity
+    }
 
     // 绘制球体
     this.drawBody(ctx, screenX, screenY, screenRadius)

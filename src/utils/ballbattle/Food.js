@@ -62,10 +62,10 @@ export class Food {
     ctx.arc(screenX, screenY, screenRadius * pulse, 0, Math.PI * 2)
     ctx.fill()
 
-    // 发光效果
-    ctx.shadowColor = this.color
-    ctx.shadowBlur = 10
-    ctx.fill()
+    // 移除昂贵的阴影效果，改用轻量边框
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'
+    ctx.lineWidth = 1
+    ctx.stroke()
 
     ctx.restore()
   }
