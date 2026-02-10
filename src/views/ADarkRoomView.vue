@@ -322,7 +322,7 @@ onUnmounted(() => {
         <button
           class="back-btn"
           @click="goBack"
-          title="提示：转载游戏引用外部网站，无法自动存档。请在游戏中点击导出，然后在此处手动保存存档"
+          title="存档管理（建议在游戏中点击导出后，在此处手动保存存档，以防数据丢失）"
         >
           <span class="back-icon">←</span>
           <span class="back-text">返回</span>
@@ -372,7 +372,7 @@ onUnmounted(() => {
       <iframe
         v-show="!isLoading && !hasError"
         ref="iframeRef"
-        src="https://adarkroom.doublespeakgames.com/"
+        src="/adarkroom/index.html?lang=zh_cn"
         class="game-frame"
         @load="onIframeLoad"
         @error="onIframeError"
@@ -391,7 +391,7 @@ onUnmounted(() => {
           </div>
           <div class="confirm-body">
             <p>确定要退出游戏吗？</p>
-            <span class="tip-text">转载游戏引用外部网站，无法自动存档。请在游戏中点击"导出"，然后在存档管理中保存</span>
+            <span class="tip-text">建议在游戏中点击"导出"，然后在存档管理中保存备份</span>
           </div>
           <div class="confirm-footer">
             <button class="confirm-btn cancel" @click="cancelExit">
