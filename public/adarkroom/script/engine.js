@@ -105,6 +105,7 @@
       }
 
       // start loading music and events early
+      /*
       for (var key in AudioLibrary) {
         if (
           key.toString().indexOf('MUSIC_') > -1 ||
@@ -112,6 +113,7 @@
             AudioEngine.loadAudioFile(AudioLibrary[key]);
           }
       }
+      */
 
       $('<div>').attr('id', 'locationSlider').appendTo('#main');
 
@@ -142,17 +144,21 @@
         });
       }
 
+      /*
       $('<span>')
         .addClass('volume menuBtn')
         .text(_('sound on.'))
         .click(() => Engine.toggleVolume())
         .appendTo(menu);
+      */
 
+      /*
       $('<span>')
         .addClass('appStore menuBtn')
         .text(_('get the app.'))
         .click(Engine.getApp)
         .appendTo(menu);
+      */
 
       $('<span>')
         .addClass('lightsOff menuBtn')
@@ -172,6 +178,7 @@
         .click(Engine.confirmDelete)
         .appendTo(menu);
 
+      /*
       $('<span>')
         .addClass('menuBtn')
         .text(_('share.'))
@@ -185,6 +192,7 @@
         .text(_('github.'))
         .click(function() { window.open('https://github.com/doublespeakgames/adarkroom'); })
         .appendTo(menu);
+      */
 
       // Register keypress handlers
       $('body').off('keydown').keydown(Engine.keyDown);
@@ -236,7 +244,7 @@
       Engine.saveLanguage();
       Engine.travelTo(Room);
 
-      setTimeout(notifyAboutSound, 3000);
+      // setTimeout(notifyAboutSound, 3000);
 
     },
     resumeAudioContext: function () {

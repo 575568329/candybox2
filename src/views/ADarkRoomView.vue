@@ -281,7 +281,7 @@ onUnmounted(() => {
       <iframe
         v-show="!isLoading && !hasError"
         ref="iframeRef"
-        src="/adarkroom/index.html?lang=zh_cn"
+        src="adarkroom/index.html?lang=zh_cn"
         class="game-frame"
         @load="onIframeLoad"
         @error="onIframeError"

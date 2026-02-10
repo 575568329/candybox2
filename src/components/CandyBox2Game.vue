@@ -550,7 +550,7 @@ onUnmounted(async () => {
   flex: 1;
   position: relative;
   overflow: hidden;
-  background: #f5f5f5;
+  background: #fff;
 }
 
 /* 导航栏过渡动画 */
