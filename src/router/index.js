@@ -4,7 +4,6 @@ import ADarkRoomView from '../views/ADarkRoomView.vue'
 import TetrisGame from '../components/TetrisGame.vue'
 import CandyBox2Game from '../components/CandyBox2Game.vue'
 import LifeRestartGame from '../components/LifeRestartGame.vue'
-import HexTetris from '../components/HexTetris.vue'
 
 const routes = [
   {
@@ -31,11 +30,6 @@ const routes = [
     path: '/liferestart',
     name: 'LifeRestart',
     component: LifeRestartGame
-  },
-  {
-    path: '/hextetris',
-    name: 'HexTetris',
-    component: HexTetris
   }
 ]
 
