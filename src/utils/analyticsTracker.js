@@ -65,7 +65,8 @@ export class AnalyticsTracker {
   getUserId() {
     let userId = localStorage.getItem('game_user_id')
     if (!userId) {
-      userId = Date.now().toString(36)
+      // ✅ 增强唯一性：时间戳 + 随机字符串
+      userId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5)
       localStorage.setItem('game_user_id', userId)
     }
     return userId
@@ -96,6 +97,7 @@ export class AnalyticsTracker {
   createEvent(eventType, eventData = {}) {
     return {
       t: eventType, // 类型缩写
+      u: this.userId, // ✅ 新增：每个事件都记录产生它的用户ID
       ts: Date.now(), // 时间戳（简化）
       d: this.simplifyData(eventData) // 简化数据
     }
@@ -364,6 +366,7 @@ export class AnalyticsTracker {
         console.log(`[埋点] 添加了 ${dedupedThrottled.length} 个节流事件`)
       }
 
+      // 372 行附近
       // 添加统计数据到事件队列
       const statsToSync = { ...this.eventStats }
       if (Object.keys(statsToSync.gameClicks).length > 0 ||
@@ -371,6 +374,7 @@ export class AnalyticsTracker {
           statsToSync.searchCount > 0) {
         this.pendingEvents.push({
           t: 'stats',
+          u: this.userId, // ✅ 加入用户ID
           ts: Date.now(),
           d: {
             gc: statsToSync.gameClicks,
@@ -391,6 +395,17 @@ export class AnalyticsTracker {
       const DAYS_TO_KEEP = 30 // 只保留30天的数据
       const TIME_THRESHOLD = Date.now() - (DAYS_TO_KEEP * 24 * 60 * 60 * 1000)
 
+      // 构建更新后的用户表
+      const users = (existingData && existingData.users) ? { ...existingData.users } : {}
+      users[this.userId] = Date.now() // 更新当前用户最后在线时间
+
+      // 过滤掉超过30天未活跃的用户
+      for (const id in users) {
+        if (users[id] < TIME_THRESHOLD) {
+          delete users[id]
+        }
+      }
+
       // 构建更新后的数据
       let updatedData
 
@@ -404,17 +419,19 @@ export class AnalyticsTracker {
           .slice(-MAX_EVENTS)
 
         updatedData = {
-          v: '2.0',
-          u: this.userId,
+          v: '2.1', // 版本升级
+          u: this.userId, // 最后一次同步的用户
+          users: users,   // ✅ 新增：活跃用户映射表
           ls: Date.now(),
-          te: allEvents.length, // 记录总事件数（包括被过滤的）
+          te: allEvents.length, 
           events: filteredEvents
         }
       } else {
         // 如果没有现有数据，创建新数据
         updatedData = {
-          v: '2.0',
+          v: '2.1',
           u: this.userId,
+          users: users,   // ✅ 新增：活跃用户映射表
           c: Date.now(),
           ls: Date.now(),
           te: eventsToSync.length,
@@ -538,8 +555,9 @@ export class AnalyticsTracker {
         }
 
         const data = {
-          v: '2.0',
+          v: '2.1',
           u: this.userId,
+          users: (existingData && existingData.users) ? { ...existingData.users, [this.userId]: Date.now() } : { [this.userId]: Date.now() },
           ls: Date.now(),
           te: eventsToSend.length,
           events: eventsToSend
