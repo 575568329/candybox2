@@ -58,6 +58,20 @@ const games = ref([
     isVueComponent: true // 标记为Vue组件游戏
   },
   {
+    id: 'hextris',
+    name: '六边形俄罗斯方块',
+    englishName: 'Hextris',
+    description: '经典的六边形旋转消除游戏，体验不一样的俄罗斯方块',
+    icon: '⬢',
+    path: '/hextris',
+    color: '#3498db',
+    category: 'puzzle',
+    tags: ['益智', '消除', '经典', '转载'],
+    difficulty: '中等',
+    players: '单人',
+    source: '转载自 hextris.io'
+  },
+  {
     id: 'adarkroom',
     name: '小黑屋',
     englishName: 'A Dark Room',

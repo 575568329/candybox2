@@ -9,6 +9,14 @@ const BASKET_NAME = 'GAME'
 
 export class AnalyticsTracker {
   constructor() {
+    // 开发环境禁用埋点统计
+    this.enabled = !import.meta.env.DEV
+
+    if (!this.enabled) {
+      console.log('[埋点] 开发环境已禁用埋点统计')
+      return
+    }
+
     this.sessionId = this.generateSessionId()
     this.userId = this.getUserId()
     this.currentSession = null
@@ -32,6 +40,16 @@ export class AnalyticsTracker {
       categoryViews: {},
       searchCount: 0
     }
+  }
+
+  /**
+   * 检查埋点是否启用（开发环境禁用）
+   */
+  checkEnabled() {
+    if (!this.enabled) {
+      return false
+    }
+    return true
   }
 
   /**
@@ -101,6 +119,7 @@ export class AnalyticsTracker {
    * 开始游戏会话（简化版）
    */
   startGameSession(game) {
+    if (!this.checkEnabled()) return null
     const session = {
       g: game.id, // 游戏ID
       n: game.name, // 游戏名称
@@ -126,6 +145,7 @@ export class AnalyticsTracker {
    * 结束游戏会话（简化版）
    */
   endGameSession() {
+    if (!this.checkEnabled()) return null
     if (!this.currentSession) return
 
     this.currentSession.e = Date.now()
@@ -150,6 +170,7 @@ export class AnalyticsTracker {
    * 追踪存档操作（简化版）
    */
   trackSaveOperation(operation, gameId, saveData = {}) {
+    if (!this.checkEnabled()) return
     if (this.currentSession) {
       this.currentSession.so++
       this.currentSession.sv = true
@@ -170,6 +191,7 @@ export class AnalyticsTracker {
    * 追踪页面访问（带节流和延迟队列）
    */
   trackPageView(page, pageData = {}) {
+    if (!this.checkEnabled()) return
     // ✅ 修复问题5：节流事件进入延迟队列而非直接丢弃
     if (this.shouldThrottle('page_view')) {
       // 加入延迟队列，后续在 sync() 中去重
@@ -193,6 +215,7 @@ export class AnalyticsTracker {
    * 追踪用户行为（带节流、统计和延迟队列）
    */
   trackUserAction(action, actionData = {}) {
+    if (!this.checkEnabled()) return
     // 统计事件（无论是否节流都要统计）
     this.incrementEventStats(action, actionData)
 
@@ -299,8 +322,11 @@ export class AnalyticsTracker {
    * - 处理节流事件队列（去重后添加）
    * - 只在成功时重置统计数据
    * - 保留30天内的数据，最多1000个事件
+   * - 开发环境不执行同步
    */
   async sync() {
+    if (!this.checkEnabled()) return
+
     // ✅ 修复问题3：并发控制
     if (this.isSyncing) {
       console.log('[埋点] 正在同步中，跳过本次请求')
@@ -422,6 +448,8 @@ export class AnalyticsTracker {
    * @param {number} interval - 同步间隔（毫秒），默认5分钟
    */
   startAutoSync(interval = 300000) { // 默认5分钟（从30秒改为5分钟）
+    if (!this.checkEnabled()) return
+
     if (this.syncInterval) {
       clearInterval(this.syncInterval)
     }
@@ -470,8 +498,13 @@ export class AnalyticsTracker {
 
   /**
    * 初始化追踪器（修复版）
+   * 开发环境不初始化
    */
   init() {
+    if (!this.checkEnabled()) {
+      console.log('[埋点] 开发环境跳过初始化')
+      return
+    }
     this.setupConnectivityListener()
     this.startAutoSync()
 

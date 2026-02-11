@@ -8,6 +8,12 @@ const isUToolsEnv = () => {
 }
 
 onMounted(() => {
+  // 开发环境不初始化埋点追踪器
+  if (import.meta.env.DEV) {
+    console.log('[埋点] 开发环境跳过埋点初始化')
+    return
+  }
+
   // 初始化埋点追踪器（全局初始化，确保所有页面都能收集数据）
   console.log('[埋点] 初始化追踪器')
   analyticsTracker.init()
@@ -27,9 +33,11 @@ onMounted(() => {
 
     window.utools.onPluginOut(() => {
       console.log('插件退出')
-      // 停止自动同步并触发一次同步
-      analyticsTracker.stopAutoSync()
-      analyticsTracker.sync()
+      // 停止自动同步并触发一次同步（开发环境已跳过）
+      if (!import.meta.env.DEV) {
+        analyticsTracker.stopAutoSync()
+        analyticsTracker.sync()
+      }
     })
   }
 })
