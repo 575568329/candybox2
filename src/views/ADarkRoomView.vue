@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { analyticsTracker } from '../utils/analyticsTracker'
 
 const router = useRouter()
 
@@ -65,6 +66,13 @@ const showExitConfirm = ref(false)
 // 组件挂载
 onMounted(() => {
   console.log('[小黑屋] 组件已挂载')
+
+  // 开始游戏会话（埋点）
+  analyticsTracker.startGameSession({
+    id: 'adarkroom',
+    name: '小黑屋'
+  })
+
   // 3秒后自动隐藏导航栏
   scheduleHideHeader()
 })
@@ -76,6 +84,10 @@ const goBack = () => {
 
 const confirmExit = () => {
   showExitConfirm.value = false
+
+  // 结束游戏会话（埋点）
+  analyticsTracker.endGameSession()
+
   router.push('/')
 }
 
@@ -137,6 +149,11 @@ const handleSaveToUTools = async (data) => {
       }
 
       console.log('[小黑屋] 存档已保存到uTools')
+
+      // 追踪存档操作（埋点）
+      analyticsTracker.trackSaveOperation('save', 'adarkroom', {
+        auto: false
+      })
 
       // 发送确认消息给iframe
       if (iframeRef.value && iframeRef.value.contentWindow) {

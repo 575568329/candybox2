@@ -102,10 +102,16 @@ const goBack = async () => {
     // 等待用户看到成功提示
     await new Promise(r => setTimeout(r, 800))
 
+    // 结束游戏会话（埋点）
+    analyticsTracker.endGameSession()
+
     router.push('/')
   } catch (error) {
     console.error('❌ Candy Box 2 保存失败:', error)
     showToast('⚠️ 保存失败')
+
+    // 即使失败也要结束会话（埋点）
+    analyticsTracker.endGameSession()
     router.push('/')
   }
 }
@@ -253,6 +259,12 @@ const triggerAutoSave = async () => {
         const saveString = JSON.stringify(saveData)
         window.utools.dbStorage.setItem(saveKey, saveString)
         lastSaveTime.value = new Date()
+
+        // 追踪存档操作（埋点）
+        analyticsTracker.trackSaveOperation('save', 'candybox2', {
+          slot: currentSlot,
+          auto: false
+        })
       }
     } else {
       // 降级方案：直接调用 LocalSaving.save()
@@ -293,9 +305,10 @@ const triggerAutoSave = async () => {
 }
 
 onMounted(async () => {
-  analyticsTracker.trackUserAction('game_start', {
-    game: 'candybox2',
-    timestamp: Date.now()
+  // 开始游戏会话（埋点）
+  analyticsTracker.startGameSession({
+    id: 'candybox2',
+    name: '糖果盒子2'
   })
 
   // 3秒后自动隐藏导航栏

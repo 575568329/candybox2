@@ -71,13 +71,16 @@ const onMouseMoveGame = (event) => {
 
 // 返回游戏列表
 const goBack = () => {
+  // 结束游戏会话（埋点）
+  analyticsTracker.endGameSession()
   router.push('/')
 }
 
 onMounted(() => {
-  analyticsTracker.trackUserAction('game_start', {
-    game: 'liferestart',
-    timestamp: Date.now()
+  // 开始游戏会话（埋点）
+  analyticsTracker.startGameSession({
+    id: 'liferestart',
+    name: '人生重开模拟器'
   })
 
   // 3秒后自动隐藏导航栏

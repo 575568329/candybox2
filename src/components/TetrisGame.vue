@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { saveManager } from '../utils/saveManager.js'
+import { analyticsTracker } from '../utils/analyticsTracker'
 
 const router = useRouter()
 
@@ -102,6 +103,10 @@ const MOVE_INTERVAL = 150 // 移动间隔（毫秒）
 const goBack = async () => {
   // 强制保存当前游戏状态（即使暂停中也要保存）
   await autoSaveGame(true)
+
+  // 结束游戏会话（埋点）
+  analyticsTracker.endGameSession()
+
   // 返回游戏列表
   router.push('/')
 }
@@ -1147,6 +1152,12 @@ const autoSaveGame = async (forceSave = false) => {
         data: JSON.stringify(saveData),
         updatedAt: Date.now()
       })
+
+      // 追踪存档操作（埋点）
+      analyticsTracker.trackSaveOperation('auto_save', 'tetris', {
+        score: saveData.score,
+        level: saveData.level
+      })
     } else {
       // 保存到 localStorage
       saveToLocal('tetris_save', saveData)
@@ -1261,6 +1272,12 @@ const saveSwapKeysSetting = async () => {
 
 // 生命周期
 onMounted(async () => {
+  // 开始游戏会话（埋点）
+  analyticsTracker.startGameSession({
+    id: 'tetris',
+    name: '俄罗斯方块'
+  })
+
   getUserInfo()
   initBoard()
   window.addEventListener('keydown', handleKeyDown)
