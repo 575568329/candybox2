@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>深空迷梦 - 文字冒险游戏</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="一款基于Elm语言开发的中文文字冒险游戏">
+</head>
+<body>
+    <div id="root"></div>
+    <script src="elm.js"></script>
+    <script>
+      const GAME_KEY = "wolfadex__elm-text-adventure__example__game";
+
+      // 初始化游戏
+      const app = Elm.Main.init({
+        node: document.getElementById("root"),
+        flags: JSON.parse(localStorage.getItem(GAME_KEY) || "{}")
+      });
+
+      // 保存游戏到本地和uTools
+      app.ports.saveGame.subscribe(function(gameData) {
+        // 保存到localStorage作为备份
+        localStorage.setItem(GAME_KEY, JSON.stringify(gameData));
+
+        // 发送到父窗口（uTools）
+        if (window.parent !== window) {
+          window.parent.postMessage({
+            type: 'textadventure-save-request',
+            data: gameData
+          }, '*');
+        }
+      });
+
+      // 监听来自父窗口的消息
+      window.addEventListener('message', function(event) {
+        // 验证消息来源（生产环境中应该验证具体的origin）
+        if (event.data && event.data.type === 'textadventure-load-save') {
+          const gameData = event.data.data.gameState;
+          if (gameData) {
+            // 更新本地存储
+            localStorage.setItem(GAME_KEY, JSON.stringify(gameData));
+            // 重新加载页面以应用存档
+            location.reload();
+          }
+        }
+      });
+    </script>
+</body>
+</html>

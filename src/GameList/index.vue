@@ -55,6 +55,7 @@ const games = ref([
     tags: ['益智', '消除', '经典'],
     difficulty: '中等',
     players: '单人',
+    duration: '每局5-30分钟',
     isVueComponent: true // 标记为Vue组件游戏
   },
   {
@@ -69,6 +70,7 @@ const games = ref([
     tags: ['益智', '消除', '经典', '转载'],
     difficulty: '中等',
     players: '单人',
+    duration: '每局5-30分钟',
     source: '转载自 hextris.io'
   },
   {
@@ -83,6 +85,7 @@ const games = ref([
     tags: ['RPG', '文字', '冒险', '转载'],
     difficulty: '困难',
     players: '单人',
+    duration: '2-5小时',
     source: '转载自 doublespeakgames.com'
   },
   {
@@ -97,6 +100,7 @@ const games = ref([
     tags: ['RPG', '文字', '冒险', 'ASCII'],
     difficulty: '中等',
     players: '单人',
+    duration: '2-4小时',
     isVueComponent: true // 标记为Vue组件游戏
   },
   {
@@ -111,7 +115,23 @@ const games = ref([
     tags: ['RPG', '模拟', '文字', '人生'],
     difficulty: '简单',
     players: '单人',
+    duration: '每局5-15分钟',
     isVueComponent: true
+  },
+  {
+    id: 'textadventure',
+    name: '深空迷梦',
+    englishName: 'Deep Space Reverie',
+    description: '在英国酒馆与朋友畅饮后，你在飞船中昏沉醒来。记忆断片、神秘匕首、诡异力量——探索真相，揭开深空中的致命谜团',
+    icon: '🚀',
+    path: '/textadventure',
+    color: '#3498db',
+    category: 'rpg',
+    tags: ['RPG', '文字', '冒险', '太空', '悬疑', '短篇'],
+    difficulty: '中等',
+    players: '单人',
+    duration: '15-30分钟',
+    source: '转载自 wolfadex.github.io'
   }
 ])
 
@@ -438,6 +458,7 @@ onUnmounted(() => {
                 <div class="game-details">
                   <span class="detail-item">难度: {{ game.difficulty }}</span>
                   <span class="detail-item">{{ game.players }}</span>
+                  <span v-if="game.duration" class="detail-item">时长: {{ game.duration }}</span>
                 </div>
               </div>
             </div>
