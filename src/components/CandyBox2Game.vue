@@ -383,6 +383,9 @@ onMounted(async () => {
         console.error('[CandyBox2] 解析存档失败，使用默认槽位:', parseError)
         // 清除无效的存档
         window.utools.dbStorage.removeItem(saveKey)
+        // 同时清除 localStorage 中的 pending 数据，避免加载错误槽位
+        localStorage.removeItem('candybox2_pending_slot')
+        localStorage.removeItem('candybox2_pending_data')
         initialSlot = '1'
       }
     }
