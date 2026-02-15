@@ -331,13 +331,60 @@ onMounted(async () => {
     const saveString = window.utools.dbStorage.getItem(saveKey)
 
     if (saveString) {
-      const saveData = JSON.parse(saveString)
-      initialSlot = saveData._metadata.currentSlot
-      lastSaveTime.value = new Date(saveData._metadata.lastSave)
+      try {
+        const saveData = JSON.parse(saveString)
 
-      // 将数据保存到父窗口 localStorage，iframe 加载时会从这里读取
-      localStorage.setItem('candybox2_pending_slot', initialSlot)
-      localStorage.setItem('candybox2_pending_data', saveString)
+        // 验证存档数据的结构
+        if (!saveData || typeof saveData !== 'object') {
+          console.warn('[CandyBox2] 存档数据无效：不是对象类型')
+          throw new Error('存档数据格式无效')
+        }
+
+        if (!saveData._metadata || typeof saveData._metadata !== 'object') {
+          console.warn('[CandyBox2] 存档数据无效：缺少 _metadata')
+          throw new Error('存档缺少元数据')
+        }
+
+        if (!saveData._data || typeof saveData._data !== 'object') {
+          console.warn('[CandyBox2] 存档数据无效：缺少 _data')
+          throw new Error('存档缺少数据')
+        }
+
+        // 验证 currentSlot 是否有效
+        const validSlot = saveData._metadata.currentSlot
+        if (validSlot && ['1', '2', '3'].includes(String(validSlot))) {
+          initialSlot = String(validSlot)
+        } else {
+          console.warn('[CandyBox2] 槽位无效，使用默认槽位1:', validSlot)
+          initialSlot = '1'
+        }
+
+        // 验证并解析 lastSave
+        if (saveData._metadata.lastSave) {
+          try {
+            lastSaveTime.value = new Date(saveData._metadata.lastSave)
+            // 检查日期是否有效
+            if (isNaN(lastSaveTime.value.getTime())) {
+              console.warn('[CandyBox2] 保存时间无效，忽略')
+              lastSaveTime.value = null
+            }
+          } catch (dateError) {
+            console.warn('[CandyBox2] 解析保存时间失败:', dateError)
+            lastSaveTime.value = null
+          }
+        }
+
+        // 将数据保存到父窗口 localStorage，iframe 加载时会从这里读取
+        localStorage.setItem('candybox2_pending_slot', initialSlot)
+        localStorage.setItem('candybox2_pending_data', saveString)
+
+        console.log('[CandyBox2] 存档加载成功，槽位:', initialSlot)
+      } catch (parseError) {
+        console.error('[CandyBox2] 解析存档失败，使用默认槽位:', parseError)
+        // 清除无效的存档
+        window.utools.dbStorage.removeItem(saveKey)
+        initialSlot = '1'
+      }
     }
   }
 

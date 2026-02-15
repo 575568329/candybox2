@@ -123,7 +123,29 @@ function init(b) {
 	$("#pauseBtn").attr('src',"./images/btn_pause.svg");
 	hideUIElements();
 	var saveState = localStorage.getItem("saveState") || "{}";
-	saveState = JSONfn.parse(saveState);
+
+	// 验证并解析存档数据
+	try {
+		saveState = JSONfn.parse(saveState);
+
+		// 验证存档数据的结构
+		if (saveState && typeof saveState !== 'object') {
+			console.warn('[Hextris] 存档数据无效，使用新游戏');
+			saveState = {};
+		}
+
+		// 如果有 score 字段，验证它是否为数字
+		if (saveState.score !== undefined && typeof saveState.score !== 'number') {
+			console.warn('[Hextris] 存档 score 字段无效，使用新游戏');
+			saveState = {};
+		}
+	} catch (parseError) {
+		console.error('[Hextris] 解析存档失败，使用新游戏:', parseError);
+		saveState = {};
+		// 清除无效的存档
+		localStorage.setItem("saveState", "{}");
+	}
+
 	document.getElementById("canvas").className = "";
 	history = {};
 	importedHistory = undefined;
@@ -262,7 +284,21 @@ function animLoop() {
 
 		if (checkGameOver() && !importing) {
 			var saveState = localStorage.getItem("saveState") || "{}";
-			saveState = JSONfn.parse(saveState);
+
+			// 验证并解析存档数据
+			try {
+				saveState = JSONfn.parse(saveState);
+
+				// 验证存档数据的结构
+				if (!saveState || typeof saveState !== 'object') {
+					console.warn('[Hextris] 游戏结束时存档数据无效');
+					saveState = {};
+				}
+			} catch (parseError) {
+				console.error('[Hextris] 游戏结束时解析存档失败:', parseError);
+				saveState = {};
+			}
+
 			gameState = 2;
 
 			setTimeout(function() {

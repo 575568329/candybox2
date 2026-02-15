@@ -1169,6 +1169,53 @@ const autoSaveGame = async (forceSave = false) => {
   }
 }
 
+// 验证存档数据的有效性
+const validateSaveData = (data) => {
+  try {
+    // 验证基本字段存在
+    if (!data || typeof data !== 'object') {
+      console.warn('[存档验证] 存档数据无效：不是对象类型')
+      return false
+    }
+
+    // 验证 board 数据
+    if (!Array.isArray(data.board) || data.board.length !== BOARD_HEIGHT) {
+      console.warn('[存档验证] 存档数据无效：board 数组长度不正确')
+      return false
+    }
+
+    // 验证每一行的数据
+    for (let i = 0; i < data.board.length; i++) {
+      const row = data.board[i]
+      if (!Array.isArray(row) || row.length !== BOARD_WIDTH) {
+        console.warn(`[存档验证] 存档数据无效：第 ${i} 行数据不正确`)
+        return false
+      }
+    }
+
+    // 验证数值字段
+    if (typeof data.score !== 'number' || data.score < 0) {
+      console.warn('[存档验证] 存档数据无效：score 字段无效')
+      return false
+    }
+
+    if (typeof data.level !== 'number' || data.level < 1) {
+      console.warn('[存档验证] 存档数据无效：level 字段无效')
+      return false
+    }
+
+    if (typeof data.lines !== 'number' || data.lines < 0) {
+      console.warn('[存档验证] 存档数据无效：lines 字段无效')
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('[存档验证] 验证过程出错:', error)
+    return false
+  }
+}
+
 // 自动加载游戏
 const autoLoadGame = async () => {
   try {
@@ -1179,7 +1226,13 @@ const autoLoadGame = async () => {
       const savePrefix = saveManager.getGameSavePrefix('tetris')
       const docs = await saveManager.getAllDocs(savePrefix)
       if (docs && docs.length > 0) {
-        saveData = JSON.parse(docs[0].data)
+        // 尝试解析存档数据
+        try {
+          saveData = JSON.parse(docs[0].data)
+        } catch (parseError) {
+          console.error('[自动加载] 存档数据解析失败:', parseError)
+          return
+        }
       }
     } else {
       // 从 localStorage 加载
@@ -1187,6 +1240,14 @@ const autoLoadGame = async () => {
     }
 
     if (saveData) {
+      // 验证存档数据的有效性
+      if (!validateSaveData(saveData)) {
+        console.warn('[自动加载] 存档数据验证失败，跳过自动加载')
+        // 清除无效的存档数据
+        await clearSave()
+        return
+      }
+
       // 恢复游戏状态
       board.value = saveData.board
       score.value = saveData.score

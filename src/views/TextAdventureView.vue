@@ -157,6 +157,29 @@ const handleSaveToUTools = async (gameData) => {
   }
 }
 
+// 验证深空迷梦存档数据的有效性
+const validateTextAdventureSave = (gameData) => {
+  try {
+    // 验证基本字段存在
+    if (!gameData || typeof gameData !== 'object') {
+      console.warn('[深空迷梦] 存档验证失败：不是对象类型')
+      return false
+    }
+
+    // 验证游戏状态数据（根据实际游戏结构调整）
+    // 这里假设游戏数据至少包含一些基本字段
+    if (!gameData.currentScene && !gameData.player && !gameData.flags) {
+      console.warn('[深空迷梦] 存档验证失败：缺少必要字段')
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('[深空迷梦] 存档验证出错:', error)
+    return false
+  }
+}
+
 // 发送保存的游戏数据到iframe
 const sendSavedGameToIframe = async () => {
   try {
@@ -174,14 +197,40 @@ const sendSavedGameToIframe = async () => {
 
       if (docs && docs.length > 0) {
         gameData = docs[0].gameState
-        console.log('[深空迷梦] 从uTools加载存档成功')
+
+        // 验证存档数据
+        if (!validateTextAdventureSave(gameData)) {
+          console.warn('[深空迷梦] uTools存档数据验证失败，清除无效存档')
+          // 清除无效的存档
+          if (window.utools.db.promises && window.utools.db.promises.remove) {
+            await window.utools.db.promises.remove(UTOOLS_STORAGE_KEY)
+          } else {
+            window.utools.db.remove(UTOOLS_STORAGE_KEY)
+          }
+          gameData = null
+        } else {
+          console.log('[深空迷梦] 从uTools加载存档成功')
+        }
       }
     } else {
       // 非uTools环境，从localStorage读取
       const savedData = localStorage.getItem(UTOOLS_STORAGE_KEY)
       if (savedData) {
-        gameData = JSON.parse(savedData)
-        console.log('[深空迷梦] 从localStorage加载存档（非uTools环境）')
+        try {
+          const parsedData = JSON.parse(savedData)
+
+          // 验证存档数据
+          if (!validateTextAdventureSave(parsedData)) {
+            console.warn('[深空迷梦] localStorage存档数据验证失败，清除无效存档')
+            localStorage.removeItem(UTOOLS_STORAGE_KEY)
+          } else {
+            gameData = parsedData
+            console.log('[深空迷梦] 从localStorage加载存档（非uTools环境）')
+          }
+        } catch (parseError) {
+          console.error('[深空迷梦] 解析localStorage存档失败:', parseError)
+          localStorage.removeItem(UTOOLS_STORAGE_KEY)
+        }
       }
     }
 

@@ -93,11 +93,36 @@ onMounted(() => {
     if (saveString) {
       try {
         const saveData = JSON.parse(saveString)
-        if (saveData._metadata?.lastSave) {
-          lastSaveTime.value = new Date(saveData._metadata.lastSave)
+
+        // 验证存档数据的基本结构
+        if (!saveData || typeof saveData !== 'object') {
+          console.warn('[LifeRestart] 存档数据无效：不是对象类型')
+          throw new Error('存档数据格式无效')
+        }
+
+        if (!saveData._metadata || typeof saveData._metadata !== 'object') {
+          console.warn('[LifeRestart] 存档数据无效：缺少 _metadata')
+          throw new Error('存档缺少元数据')
+        }
+
+        // 验证并解析 lastSave
+        if (saveData._metadata.lastSave) {
+          try {
+            const saveTime = new Date(saveData._metadata.lastSave)
+            // 检查日期是否有效
+            if (!isNaN(saveTime.getTime())) {
+              lastSaveTime.value = saveTime
+            } else {
+              console.warn('[LifeRestart] 保存时间无效')
+            }
+          } catch (dateError) {
+            console.warn('[LifeRestart] 解析保存时间失败:', dateError)
+          }
         }
       } catch (error) {
-        console.error('读取 LifeRestart 存档时间失败:', error)
+        console.error('[LifeRestart] 读取存档失败，清除无效存档:', error)
+        // 清除无效的存档
+        window.utools.dbStorage.removeItem(saveKey)
       }
     }
   }
