@@ -1,13 +1,13 @@
 {
   "pluginName": "小游戏集合",
-  "description": "精选小游戏合集，支持存档功能，包括俄罗斯方块、小黑屋、糖果盒子2、人生重开模拟器等多款经典游戏",
+  "description": "精选6款小游戏合集，支持云存档功能，包括俄罗斯方块、六边形俄罗斯方块、小黑屋、糖果盒子2、人生重开模拟器、深空迷梦等多款经典游戏。支持存档自动保存和多设备同步。",
   "main": "index.html",
   "logo": "logo.png",
-  "version": "2.1.0",
-  "author": "Your Name",
-  "homepage": "https://github.com/yourusername/games-collection",
+  "version": "2.2.0",
+  "author": "575568329",
+  "homepage": "https://github.com/575568329/candybox2",
   "development": {
-    "main": "http://localhost:5177/#/"
+    "main": "http://localhost:5173/#/"
   },
   "features": [
     {
@@ -22,44 +22,67 @@
     },
     {
       "code": "tetris",
-      "explain": "直接打开俄罗斯方块游戏",
+      "explain": "直接打开俄罗斯方块游戏 - 经典消除游戏，挑战极限速度",
       "cmds": [
         "俄罗斯方块",
         "tetris",
         "方块",
-        "消除"
+        "消除",
+        "消方块"
+      ]
+    },
+    {
+      "code": "hextris",
+      "explain": "直接打开六边形俄罗斯方块 - 六边形旋转消除游戏",
+      "cmds": [
+        "六边形俄罗斯方块",
+        "hextris",
+        "六边形",
+        "六边方块"
       ]
     },
     {
       "code": "adarkroom",
-      "explain": "直接打开小黑屋（A Dark Room）游戏",
+      "explain": "直接打开小黑屋（A Dark Room）游戏 - 极简主义文字冒险游戏",
       "cmds": [
         "小黑屋",
         "adarkroom",
         "a dark room",
-        "黑暗房间"
+        "黑暗房间",
+        "黑屋"
       ]
     },
     {
       "code": "candybox2",
-      "explain": "直接打开糖果盒子2（Candy Box 2）游戏",
+      "explain": "直接打开糖果盒子2（Candy Box 2）游戏 - ASCII艺术风格文字RPG",
       "cmds": [
         "糖果盒子2",
         "candybox2",
-        "candy box 2",
         "糖果",
-        "candy"
+        "candy",
+        "糖果盒"
       ]
     },
     {
       "code": "liferestart",
-      "explain": "直接打开人生重开模拟器（Life Restart）游戏",
+      "explain": "直接打开人生重开模拟器（Life Restart）游戏 - 模拟另一种人生",
       "cmds": [
         "人生重开模拟器",
         "liferestart",
         "人生重开",
         "重开",
         "人生模拟"
+      ]
+    },
+    {
+      "code": "textadventure",
+      "explain": "直接打开深空迷梦 - 太空悬疑文字冒险游戏",
+      "cmds": [
+        "深空迷梦",
+        "textadventure",
+        "太空",
+        "文字冒险",
+        "科幻"
       ]
     }
   ]
