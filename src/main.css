@@ -61,3 +61,8 @@ textarea {
     color: #fff;
   }
 }
+
+/* 隐藏 vConsole 的默认切换按钮，只通过快捷键控制 */
+.vc-switch {
+  display: none !important;
+}

@@ -21,6 +21,12 @@ if (typeof window !== 'undefined') {
         // 默认隐藏 vConsole
         vconsole.hide()
         vConsoleVisible = false
+
+        // 隐藏默认的切换按钮
+        const switchBtn = document.querySelector('.vc-switch')
+        if (switchBtn) {
+          switchBtn.style.display = 'none'
+        }
       }
     })
   }).catch((error) => {
