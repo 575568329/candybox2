@@ -8,6 +8,10 @@ const iframeRef = ref(null)
 const isLoading = ref(true)
 const hasError = ref(false)
 
+// 游戏缩放
+const gameScale = ref(1)
+const gameTransform = ref('')
+
 // 导航栏自动收起
 const headerVisible = ref(true)
 let headerTimer = null
@@ -63,7 +67,34 @@ onMounted(() => {
   console.log('[Tank] 组件已挂载')
   // 3秒后自动隐藏导航栏
   scheduleHideHeader()
+  // 计算游戏缩放
+  calculateGameScale()
+  // 监听窗口大小变化
+  window.addEventListener('resize', calculateGameScale)
 })
+
+// 计算游戏缩放比例
+const calculateGameScale = () => {
+  // 坦克大战原始尺寸: 512x416
+  const originalWidth = 512
+  const originalHeight = 416
+
+  // 获取容器可用尺寸（减去导航栏）
+  const containerWidth = window.innerWidth
+  const containerHeight = window.innerHeight - 48 // 减去导航栏高度
+
+  // 计算缩放比例，保持游戏宽高比
+  const scaleX = containerWidth / originalWidth
+  const scaleY = containerHeight / originalHeight
+  const scale = Math.min(scaleX, scaleY) // 自适应缩放
+
+  gameScale.value = scale
+
+  // 只设置缩放，由flex布局居中
+  gameTransform.value = `scale(${scale})`
+
+  console.log('[Tank] 游戏缩放:', scale)
+}
 
 // 返回游戏列表
 const goBack = () => {
@@ -100,6 +131,8 @@ onUnmounted(() => {
     clearTimeout(headerTimer)
     headerTimer = null
   }
+  // 移除窗口大小监听
+  window.removeEventListener('resize', calculateGameScale)
 })
 </script>
 
@@ -137,7 +170,7 @@ onUnmounted(() => {
     </div>
 
     <!-- 游戏容器 -->
-    <div class="game-container">
+    <div class="game-container" ref="gameContainer">
       <!-- 加载状态 -->
       <div v-if="isLoading" class="loading-state">
         <div class="loading-spinner"></div>
@@ -152,17 +185,22 @@ onUnmounted(() => {
         <button class="error-btn" @click="goBack">返回游戏列表</button>
       </div>
 
-      <!-- 游戏框架 -->
-      <iframe
+      <!-- 游戏框架容器 -->
+      <div
         v-show="!isLoading && !hasError"
-        ref="iframeRef"
-        src="/tank/index.html"
-        class="game-frame"
-        @load="onIframeLoad"
-        @error="onIframeError"
-        frameborder="0"
-        allowfullscreen
-      ></iframe>
+        class="game-frame-wrapper"
+        :style="{ transform: gameTransform }"
+      >
+        <iframe
+          ref="iframeRef"
+          src="/tank/index.html"
+          class="game-frame"
+          @load="onIframeLoad"
+          @error="onIframeError"
+          frameborder="0"
+          allowfullscreen
+        ></iframe>
+      </div>
     </div>
 
     <!-- 退出确认弹窗 -->
@@ -249,19 +287,20 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 12px;
+  padding: 4px 8px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
+  border-radius: 5px;
   color: white;
-  font-size: 13px;
+  font-size: 11px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 0.3);
+  transform: translateX(-1px);
 }
 
 .game-title {
@@ -305,12 +344,30 @@ onUnmounted(() => {
   flex: 1;
   position: relative;
   overflow: hidden;
+  background: #000;
+}
+
+/* 游戏框架包装器 - 用于缩放和定位 */
+.game-frame-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  transition: transform 0.1s ease-out;
 }
 
 .game-frame {
-  width: 100%;
-  height: 100%;
+  width: 512px;
+  height: 416px;
   border: none;
+  display: block;
+  background: #000;
+  box-sizing: border-box;
 }
 
 /* 加载状态 */
