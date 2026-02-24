@@ -7,7 +7,7 @@
   "author": "575568329",
   "homepage": "https://github.com/575568329/candybox2",
   "development": {
-    "main": "http://localhost:5173/#/"
+    "main": "http://localhost:5177/#/"
   },
   "features": [
     {

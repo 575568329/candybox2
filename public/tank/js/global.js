@@ -13,3 +13,6 @@ var START_LEVEL = 1;
 
 // 产生奖品的概率
 var BOUNS_PERCENT = 0.5;
+
+// 音效开关 (默认关闭)
+var SOUND_ENABLED = false;

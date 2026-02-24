@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -7,6 +7,15 @@ const router = useRouter()
 const iframeRef = ref(null)
 const isLoading = ref(true)
 const hasError = ref(false)
+
+// 音效开关状态
+const soundEnabled = ref(false)
+
+// 计算坦克游戏 URL，确保在开发和生产环境都能正确加载
+const tankGameUrl = computed(() => {
+  // 使用相对路径，兼容开发和打包后的环境
+  return './tank/index.html'
+})
 
 // 游戏缩放
 const gameScale = ref(1)
@@ -115,6 +124,24 @@ const onIframeLoad = () => {
   console.log('[Tank] iframe 加载完成')
   isLoading.value = false
   hasError.value = false
+  // 发送初始音效状态到游戏
+  sendSoundState()
+}
+
+// 发送音效状态到 iframe
+const sendSoundState = () => {
+  if (iframeRef.value && iframeRef.value.contentWindow) {
+    iframeRef.value.contentWindow.postMessage({
+      type: 'toggleSound',
+      enabled: soundEnabled.value
+    }, '*')
+  }
+}
+
+// 切换音效
+const toggleSound = () => {
+  soundEnabled.value = !soundEnabled.value
+  sendSoundState()
 }
 
 // iframe 加载失败
@@ -165,7 +192,13 @@ onUnmounted(() => {
             <p class="game-english-name">Tank Battle - 经典射击游戏</p>
           </div>
         </div>
-        <div class="spacer"></div>
+        <button
+          class="sound-btn"
+          @click="toggleSound"
+          :title="soundEnabled ? '关闭音效' : '开启音效'"
+        >
+          <span class="sound-icon">{{ soundEnabled ? '🔊' : '🔇' }}</span>
+        </button>
       </div>
     </div>
 
@@ -193,7 +226,7 @@ onUnmounted(() => {
       >
         <iframe
           ref="iframeRef"
-          src="/tank/index.html"
+          :src="tankGameUrl"
           class="game-frame"
           @load="onIframeLoad"
           @error="onIframeError"
@@ -337,6 +370,30 @@ onUnmounted(() => {
 
 .spacer {
   width: 60px;
+}
+
+/* 音效按钮 */
+.sound-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sound-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.sound-icon {
+  font-size: 16px;
 }
 
 /* 游戏容器 */

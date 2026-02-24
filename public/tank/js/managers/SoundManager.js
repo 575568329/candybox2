@@ -22,45 +22,45 @@ GameTank.SoundManager.prototype = Object.create(Object.prototype);
 GameTank.SoundManager.prototype.constructor = GameTank.SoundManager;
 
 GameTank.SoundManager.prototype.gameStart = function() {
-  this.soundStart.play();
+  if (SOUND_ENABLED) this.soundStart.play();
 }
 
 GameTank.SoundManager.prototype.playerFire = function() {
-  this.soundPlayerFire.play();
+  if (SOUND_ENABLED) this.soundPlayerFire.play();
 }
 
 GameTank.SoundManager.prototype.enemyFire = function() {
-  this.soundEnemyFire.play();
+  if (SOUND_ENABLED) this.soundEnemyFire.play();
 }
 
 GameTank.SoundManager.prototype.gameOver = function() {
-  this.soundOver.play();
+  if (SOUND_ENABLED) this.soundOver.play();
 }
 
 GameTank.SoundManager.prototype.hitBrick = function() {
-  this.soundHitBrick.play();
+  if (SOUND_ENABLED) this.soundHitBrick.play();
 }
 
 GameTank.SoundManager.prototype.hitIron = function() {
-  this.soundHitIron.play();
+  if (SOUND_ENABLED) this.soundHitIron.play();
 }
 
 GameTank.SoundManager.prototype.enemyBoom = function() {
-  this.soundEnemyBoom.play();
+  if (SOUND_ENABLED) this.soundEnemyBoom.play();
 }
 
 GameTank.SoundManager.prototype.playerBoom = function() {
-  this.soundPlayerBoom.play();
+  if (SOUND_ENABLED) this.soundPlayerBoom.play();
 }
 
 GameTank.SoundManager.prototype.generateAward = function() {
-  this.soundGenerateAward.play();
+  if (SOUND_ENABLED) this.soundGenerateAward.play();
 }
 
 GameTank.SoundManager.prototype.getAward = function() {
-  this.soundGetAward.play();
+  if (SOUND_ENABLED) this.soundGetAward.play();
 }
 
 GameTank.SoundManager.prototype.countScore = function() {
-  this.soundPlayerFire.play();
+  if (SOUND_ENABLED) this.soundPlayerFire.play();
 }
