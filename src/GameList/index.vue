@@ -132,6 +132,20 @@ const games = ref([
     players: '单人',
     duration: '15-30分钟',
     source: '转载自 wolfadex.github.io'
+  },
+  {
+    id: 'tank',
+    name: '坦克大战',
+    englishName: 'Tank Battle',
+    description: '经典FC坦克大战游戏，保卫基地，消灭敌军坦克',
+    icon: '🎖️',
+    path: '/tank',
+    color: '#5c6bc0',
+    category: 'strategy',
+    tags: ['策略', '射击', '经典', '双人'],
+    difficulty: '中等',
+    players: '单人/双人',
+    duration: '每局10-30分钟'
   }
 ])
 

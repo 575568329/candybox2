@@ -3,6 +3,7 @@ import GameList from '../GameList/index.vue'
 import ADarkRoomView from '../views/ADarkRoomView.vue'
 import HextrisView from '../views/HextrisView.vue'
 import TextAdventureView from '../views/TextAdventureView.vue'
+import TankView from '../views/TankView.vue'
 import TetrisGame from '../components/TetrisGame.vue'
 import CandyBox2Game from '../components/CandyBox2Game.vue'
 import LifeRestartGame from '../components/LifeRestartGame.vue'
@@ -42,6 +43,11 @@ const routes = [
     path: '/textadventure',
     name: 'TextAdventure',
     component: TextAdventureView
+  },
+  {
+    path: '/tank',
+    name: 'Tank',
+    component: TankView
   }
 ]
 
