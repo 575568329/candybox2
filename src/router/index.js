@@ -1,53 +1,46 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import GameList from '../GameList/index.vue'
-import ADarkRoomView from '../views/ADarkRoomView.vue'
-import HextrisView from '../views/HextrisView.vue'
-import TextAdventureView from '../views/TextAdventureView.vue'
-import TankView from '../views/TankView.vue'
-import TetrisGame from '../components/TetrisGame.vue'
-import CandyBox2Game from '../components/CandyBox2Game.vue'
-import LifeRestartGame from '../components/LifeRestartGame.vue'
 
+// 路由懒加载 - 减小首屏 bundle
 const routes = [
   {
     path: '/',
     name: 'Home',
-    component: GameList
+    component: () => import('../GameList/index.vue')
   },
   {
     path: '/adarkroom',
     name: 'ADarkRoom',
-    component: ADarkRoomView
+    component: () => import('../views/ADarkRoomView.vue')
   },
   {
     path: '/hextris',
     name: 'Hextris',
-    component: HextrisView
+    component: () => import('../views/HextrisView.vue')
   },
   {
     path: '/tetris',
     name: 'Tetris',
-    component: TetrisGame
+    component: () => import('../views/TetrisGameView.vue')
   },
   {
     path: '/candybox2',
     name: 'CandyBox2',
-    component: CandyBox2Game
+    component: () => import('../views/CandyBox2View.vue')
   },
   {
     path: '/liferestart',
     name: 'LifeRestart',
-    component: LifeRestartGame
+    component: () => import('../views/LifeRestartView.vue')
   },
   {
     path: '/textadventure',
     name: 'TextAdventure',
-    component: TextAdventureView
+    component: () => import('../views/TextAdventureView.vue')
   },
   {
     path: '/tank',
     name: 'Tank',
-    component: TankView
+    component: () => import('../views/TankView.vue')
   }
 ]
 
