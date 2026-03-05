@@ -29,21 +29,42 @@ export class SaveGameManager {
 
   /**
    * 保存文档（兼容同步和异步版本）
+   * 自动处理 _rev 冲突
    */
   async putDoc(doc) {
-    // 优先使用 promises API（异步）
-    if (window.utools.db.promises && window.utools.db.promises.put) {
-      return await window.utools.db.promises.put(doc)
-    }
-    // 回退到同步 API
-    return new Promise((resolve, reject) => {
-      const result = window.utools.db.put(doc)
-      if (result.error) {
-        reject(new Error(result.message))
-      } else {
-        resolve(result)
+    try {
+      // 如果没有 _rev，尝试从数据库获取已有的 _rev
+      if (!doc._rev && window.utools && window.utools.db) {
+        let existing = null
+        if (window.utools.db.promises && window.utools.db.promises.get) {
+          existing = await window.utools.db.promises.get(doc._id)
+        } else {
+          existing = window.utools.db.get(doc._id)
+        }
+        
+        if (existing && existing._rev) {
+          doc._rev = existing._rev
+        }
       }
-    })
+
+      // 优先使用 promises API（异步）
+      if (window.utools.db.promises && window.utools.db.promises.put) {
+        return await window.utools.db.promises.put(doc)
+      }
+      
+      // 回退到同步 API
+      return new Promise((resolve, reject) => {
+        const result = window.utools.db.put(doc)
+        if (result.error) {
+          reject(new Error(result.message))
+        } else {
+          resolve(result)
+        }
+      })
+    } catch (error) {
+      console.error('[SaveGameManager] putDoc failed:', error)
+      throw error
+    }
   }
 
   /**

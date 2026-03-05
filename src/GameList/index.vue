@@ -48,7 +48,7 @@ const games = ref([
     name: '俄罗斯方块',
     englishName: 'Tetris',
     description: '经典消除游戏，挑战极限速度',
-    icon: '🧩',
+    icon: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="12" y="12" width="18" height="18" rx="2" fill="currentColor"/><rect x="34" y="12" width="18" height="18" rx="2" fill="currentColor" fill-opacity="0.7"/><rect x="12" y="34" width="18" height="18" rx="2" fill="currentColor" fill-opacity="0.7"/><rect x="34" y="34" width="18" height="18" rx="2" fill="currentColor" fill-opacity="0.4"/></svg>`,
     path: '/tetris',
     color: '#667eea',
     category: 'puzzle',
@@ -63,7 +63,7 @@ const games = ref([
     name: '六边形俄罗斯方块',
     englishName: 'Hextris',
     description: '经典的六边形旋转消除游戏，体验不一样的俄罗斯方块',
-    icon: '⬢',
+    icon: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8L54 20V44L32 56L10 44V20L32 8Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M32 20L44 26V38L32 44L20 38V26L32 20Z" fill="currentColor" fill-opacity="0.3"/><path d="M32 32L36 34V38L32 40L28 38V34L32 32Z" fill="currentColor"/></svg>`,
     path: '/hextris',
     color: '#3498db',
     category: 'puzzle',
@@ -78,7 +78,7 @@ const games = ref([
     name: '环形之路',
     englishName: 'Circle Path',
     description: '极简风格的节奏点击游戏，在环形之路上精准跳跃',
-    icon: '●',
+    icon: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="24" stroke="currentColor" stroke-width="4" stroke-dasharray="6 6"/><circle cx="32" cy="8" r="6" fill="currentColor"/></svg>`,
     path: '/circlepath',
     color: '#62bd18',
     category: 'puzzle',
@@ -93,9 +93,9 @@ const games = ref([
     name: '小黑屋',
     englishName: 'A Dark Room',
     description: '极简主义文字冒险游戏，在黑暗中求生',
-    icon: '🏚️',
+    icon: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 12L52 28V52H12V28L32 12Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><rect x="28" y="36" width="8" height="16" fill="currentColor" fill-opacity="0.5"/><path d="M20 28H44" stroke="currentColor" stroke-width="2"/></svg>`,
     path: '/adarkroom',
-    color: '#2d3748',
+    color: '#a0aec0',
     category: 'rpg',
     tags: ['RPG', '文字', '冒险', '转载'],
     difficulty: '困难',
@@ -108,7 +108,7 @@ const games = ref([
     name: '糖果盒子2',
     englishName: 'Candy Box 2',
     description: 'ASCII艺术风格的文字RPG冒险游戏，收集糖果，探索世界',
-    icon: '🍬',
+    icon: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="16" y="24" width="32" height="20" rx="4" stroke="currentColor" stroke-width="4"/><path d="M16 34C10 34 10 24 16 24M48 34C54 34 54 24 48 24" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="34" r="4" fill="currentColor"/></svg>`,
     path: '/candybox2',
     color: '#ff6b9d',
     category: 'rpg',
@@ -123,7 +123,7 @@ const games = ref([
     name: '人生重开模拟器',
     englishName: 'Life Restart',
     description: '模拟另一种人生，体验不同的人生轨迹和选择',
-    icon: '🔄',
+    icon: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M48 32C48 40.8366 40.8366 48 32 48C23.1634 48 16 40.8366 16 32C16 23.1634 23.1634 16 32 16C36.4183 16 40.4183 17.7909 43.3137 20.6863" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M36 21H44V13" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="32" r="6" fill="currentColor"/></svg>`,
     path: '/liferestart',
     color: '#48bb78',
     category: 'rpg',
@@ -134,26 +134,11 @@ const games = ref([
     isVueComponent: true
   },
   {
-    id: 'textadventure',
-    name: '深空迷梦',
-    englishName: 'Deep Space Reverie',
-    description: '在英国酒馆与朋友畅饮后，你在飞船中昏沉醒来。记忆断片、神秘匕首、诡异力量——探索真相，揭开深空中的致命谜团',
-    icon: '🚀',
-    path: '/textadventure',
-    color: '#3498db',
-    category: 'rpg',
-    tags: ['RPG', '文字', '冒险', '太空', '悬疑', '短篇'],
-    difficulty: '中等',
-    players: '单人',
-    duration: '15-30分钟',
-    source: '转载自 wolfadex.github.io'
-  },
-  {
     id: 'tank',
     name: '坦克大战',
     englishName: 'Tank Battle',
     description: '经典FC坦克大战游戏，保卫基地，消灭敌军坦克',
-    icon: '🎖️',
+    icon: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="16" y="24" width="32" height="24" rx="2" stroke="currentColor" stroke-width="4"/><rect x="24" y="16" width="16" height="12" rx="2" stroke="currentColor" stroke-width="4"/><path d="M32 16V8M28 8H36" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M12 40H16M48 40H52" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>`,
     path: '/tank',
     color: '#5c6bc0',
     category: 'strategy',
@@ -462,7 +447,7 @@ onUnmounted(() => {
             @click="openGame(game)"
           >
             <div class="game-header">
-              <div class="game-icon">{{ game.icon }}</div>
+              <div class="game-icon" v-html="game.icon"></div>
               <div class="header-actions">
                 <div v-if="game.isExternalLink" class="external-link-badge">转载</div>
                 <div v-if="game.comingSoon" class="coming-soon-badge">即将推出</div>
@@ -780,8 +765,25 @@ onUnmounted(() => {
 }
 
 .game-icon {
-  font-size: 36px;
-  line-height: 1;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--card-color);
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.game-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+}
+
+.game-card:hover:not(.disabled) .game-icon {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 8px var(--card-color));
 }
 
 .coming-soon-badge {

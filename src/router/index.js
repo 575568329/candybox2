@@ -38,11 +38,6 @@ const routes = [
     component: () => import('../views/LifeRestartView.vue')
   },
   {
-    path: '/textadventure',
-    name: 'TextAdventure',
-    component: () => import('../views/TextAdventureView.vue')
-  },
-  {
     path: '/tank',
     name: 'Tank',
     component: () => import('../views/TankView.vue')

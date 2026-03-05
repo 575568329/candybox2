@@ -362,6 +362,7 @@ MIT
 
 ## 相关文档
 
+- [项目设计规范与图标方案](./docs/DESIGN.md) - UI 设计风格及图标设计规范
 - [数据分析文档](./docs/ANALYTICS.md) - 用户行为统计和数据分析
 - [uTools 官方文档](https://www.u.tools/docs/developer/intro.html)
 - [Vue 3 文档](https://vuejs.org/)

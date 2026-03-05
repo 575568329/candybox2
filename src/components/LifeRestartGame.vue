@@ -15,6 +15,7 @@ let headerTimer = null
 const toastMessage = ref('')
 const toastVisible = ref(false)
 let toastTimer = null
+let autoSaveInterval = null // 自动保存定时器
 
 // 显示 Toast 通知
 const showToast = (message, duration = 3000) => {
@@ -25,6 +26,36 @@ const showToast = (message, duration = 3000) => {
   toastTimer = setTimeout(() => {
     toastVisible.value = false
   }, duration)
+}
+
+// 自动保存逻辑
+const triggerAutoSave = async () => {
+  if (!window.utools || !iframeRef.value || !iframeRef.value.contentWindow) return
+
+  try {
+    const iframeStorage = iframeRef.value.contentWindow.localStorage
+    const data = {}
+    for (let i = 0; i < iframeStorage.length; i++) {
+      const key = iframeStorage.key(i)
+      data[key] = iframeStorage.getItem(key)
+    }
+
+    if (Object.keys(data).length > 0) {
+      const saveKey = 'liferestart_autosave'
+      const saveData = {
+        _metadata: {
+          version: "1.0",
+          lastSave: new Date().toISOString()
+        },
+        _data: data
+      }
+      window.utools.dbStorage.setItem(saveKey, JSON.stringify(saveData))
+      lastSaveTime.value = new Date()
+      console.log('[LifeRestart] 自动存档成功')
+    }
+  } catch (error) {
+    console.error('[LifeRestart] 自动存档失败:', error)
+  }
 }
 
 // 显示导航栏
@@ -86,49 +117,73 @@ onMounted(() => {
   // 3秒后自动隐藏导航栏
   scheduleHideHeader()
 
+  // 启动定时自动保存（每30秒保存一次）
+  autoSaveInterval = setInterval(triggerAutoSave, 30000)
+
+  // 窗口关闭前自动保存
+  window.addEventListener('beforeunload', triggerAutoSave)
+
   // 尝试读取上次保存时间
   if (window.utools) {
     const saveKey = 'liferestart_autosave'
     const saveString = window.utools.dbStorage.getItem(saveKey)
     if (saveString) {
       try {
-        const saveData = JSON.parse(saveString)
-
-        // 验证存档数据的基本结构
-        if (!saveData || typeof saveData !== 'object') {
-          console.warn('[LifeRestart] 存档数据无效：不是对象类型')
-          throw new Error('存档数据格式无效')
+        const parsedData = JSON.parse(saveString)
+        const saveData = parsedData._data || {} // 兼容新旧格式
+        
+        // 如果有云端存档，且本地没有存档，则加载云端存档
+        // 对于人生重开模拟器，直接写入 iframe 的 localStorage 即可
+        if (Object.keys(saveData).length > 0) {
+          localStorage.setItem('liferestart_pending_data', JSON.stringify(saveData))
+          console.log('[LifeRestart] 准备加载云端存档数据')
         }
 
-        if (!saveData._metadata || typeof saveData._metadata !== 'object') {
-          console.warn('[LifeRestart] 存档数据无效：缺少 _metadata')
-          throw new Error('存档缺少元数据')
-        }
-
-        // 验证并解析 lastSave
-        if (saveData._metadata.lastSave) {
-          try {
-            const saveTime = new Date(saveData._metadata.lastSave)
-            // 检查日期是否有效
-            if (!isNaN(saveTime.getTime())) {
-              lastSaveTime.value = saveTime
-            } else {
-              console.warn('[LifeRestart] 保存时间无效')
-            }
-          } catch (dateError) {
-            console.warn('[LifeRestart] 解析保存时间失败:', dateError)
-          }
+        // 解析上次保存时间（支持新格式）
+        if (parsedData._metadata && parsedData._metadata.lastSave) {
+          lastSaveTime.value = new Date(parsedData._metadata.lastSave)
         }
       } catch (error) {
-        console.error('[LifeRestart] 读取存档失败，清除无效存档:', error)
-        // 清除无效的存档
-        window.utools.dbStorage.removeItem(saveKey)
+        console.error('[LifeRestart] 解析存档失败:', error)
       }
     }
   }
 })
 
+// iframe 加载完成后的处理
+const onIframeLoad = () => {
+  console.log('[LifeRestart] iframe 加载完成')
+  
+  // 检查是否有待加载的云端数据
+  const pendingData = localStorage.getItem('liferestart_pending_data')
+  if (pendingData && iframeRef.value && iframeRef.value.contentWindow) {
+    try {
+      const data = JSON.parse(pendingData)
+      const iframeStorage = iframeRef.value.contentWindow.localStorage
+      
+      // 检查当前 iframe 内是否已经有存档（如果本地有更旧或一样的，则覆盖）
+      // 这里简单处理：如果本地没数据，才覆盖；或者直接覆盖。
+      // 通常 LifeRestart 是单次游戏，所以直接覆盖比较稳妥。
+      for (const key in data) {
+        iframeStorage.setItem(key, data[key])
+      }
+      
+      console.log('[LifeRestart] 已将云端存档应用到 iframe')
+      localStorage.removeItem('liferestart_pending_data')
+      
+      // 刷新一次 iframe 以应用 localStorage
+      // iframeRef.value.contentWindow.location.reload()
+    } catch (e) {
+      console.error('[LifeRestart] 应用云端存档失败:', e)
+    }
+  }
+}
+
 onUnmounted(() => {
+  if (autoSaveInterval) {
+    clearInterval(autoSaveInterval)
+  }
+  window.removeEventListener('beforeunload', triggerAutoSave)
   if (headerTimer) {
     clearTimeout(headerTimer)
   }
@@ -179,6 +234,7 @@ onUnmounted(() => {
         class="game-iframe"
         title="Life Restart"
         frameborder="0"
+        @load="onIframeLoad"
       ></iframe>
 
       <!-- 保存时间提示 -->

@@ -323,6 +323,9 @@ onMounted(async () => {
     }
   }, AUTO_SAVE_INTERVAL)
 
+  // 窗口关闭前自动保存
+  window.addEventListener('beforeunload', triggerAutoSave)
+
   // 读取自动存档，确定应该加载哪个槽位
   let initialSlot = '1' // 默认槽位1
 
@@ -400,6 +403,7 @@ onUnmounted(async () => {
   if (autoSaveInterval) {
     clearInterval(autoSaveInterval)
   }
+  window.removeEventListener('beforeunload', triggerAutoSave)
 
   // 清理导航栏定时器
   if (headerTimer) {

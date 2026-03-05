@@ -67,6 +67,10 @@ const showExitConfirm = ref(false)
 onMounted(() => {
   console.log('[小黑屋] 组件已挂载')
 
+  // 注册消息监听器，处理iframe的存档请求
+  // 提前到 onMounted 注册，确保能捕获到 iframe 启动时的加载请求
+  window.addEventListener('message', handleIframeMessage)
+
   // 开始游戏会话（埋点）
   analyticsTracker.startGameSession({
     id: 'adarkroom',
@@ -100,15 +104,17 @@ const onIframeLoad = () => {
   console.log('[小黑屋] iframe 加载完成')
   isLoading.value = false
   hasError.value = false
-
-  // 注册消息监听器，处理iframe的存档请求
-  window.addEventListener('message', handleIframeMessage)
 }
 
 // 处理来自iframe的消息
 const handleIframeMessage = async (event) => {
   // 验证消息来源
   if (event.origin !== window.location.origin) {
+    return
+  }
+
+  // 防护：确保 event.data 是对象类型
+  if (!event.data || typeof event.data !== 'object') {
     return
   }
 
@@ -133,7 +139,15 @@ const handleSaveToUTools = async (data) => {
     console.log('[小黑屋] 收到保存请求', data)
 
     if (window.utools && window.utools.db) {
-      // 保存到uTools数据库
+      // 1. 先获取已有存档的 _rev，以便更新
+      let existingDoc = null
+      if (window.utools.db.promises && window.utools.db.promises.get) {
+        existingDoc = await window.utools.db.promises.get(UTOOLS_STORAGE_KEY)
+      } else {
+        existingDoc = window.utools.db.get(UTOOLS_STORAGE_KEY)
+      }
+
+      // 2. 准备新的存档文档
       const saveDoc = {
         _id: UTOOLS_STORAGE_KEY,
         gameState: data.gameState,
@@ -141,18 +155,28 @@ const handleSaveToUTools = async (data) => {
         updatedAt: Date.now()
       }
 
-      // 使用promises API或回退到同步API
-      if (window.utools.db.promises && window.utools.db.promises.put) {
-        await window.utools.db.promises.put(saveDoc)
-      } else {
-        window.utools.db.put(saveDoc)
+      // 如果已有存档，添加 _rev 字段进行更新
+      if (existingDoc && existingDoc._rev) {
+        saveDoc._rev = existingDoc._rev
       }
 
-      console.log('[小黑屋] 存档已保存到uTools')
+      // 3. 保存到uTools数据库
+      let result
+      if (window.utools.db.promises && window.utools.db.promises.put) {
+        result = await window.utools.db.promises.put(saveDoc)
+      } else {
+        result = window.utools.db.put(saveDoc)
+      }
+
+      if (result && result.error) {
+        throw new Error(result.message || '保存到 uTools 数据库失败')
+      }
+
+      console.log('[小黑屋] 存档已保存到uTools', result)
 
       // 追踪存档操作（埋点）
       analyticsTracker.trackSaveOperation('save', 'adarkroom', {
-        auto: false
+        auto: true // 自动存档
       })
 
       // 发送确认消息给iframe
@@ -180,18 +204,29 @@ const handleLoadFromUTools = async () => {
     let gameStateData = null
 
     if (window.utools && window.utools.db) {
-      // 从uTools数据库读取
-      let docs = []
-
-      if (window.utools.db.promises && window.utools.db.promises.allDocs) {
-        docs = await window.utools.db.promises.allDocs(UTOOLS_STORAGE_KEY)
+      // 从uTools数据库直接读取具体的文档
+      let doc = null
+      if (window.utools.db.promises && window.utools.db.promises.get) {
+        doc = await window.utools.db.promises.get(UTOOLS_STORAGE_KEY)
       } else {
-        docs = window.utools.db.allDocs(UTOOLS_STORAGE_KEY)
+        doc = window.utools.db.get(UTOOLS_STORAGE_KEY)
       }
 
-      if (docs && docs.length > 0) {
-        gameStateData = docs[0].gameState
+      if (doc && doc.gameState) {
+        gameStateData = doc.gameState
         console.log('[小黑屋] 从uTools加载存档成功')
+      } else {
+        // 尝试使用旧的方式兼容
+        let docs = []
+        if (window.utools.db.promises && window.utools.db.promises.allDocs) {
+          docs = await window.utools.db.promises.allDocs(UTOOLS_STORAGE_KEY)
+        } else {
+          docs = window.utools.db.allDocs(UTOOLS_STORAGE_KEY)
+        }
+        if (docs && docs.length > 0) {
+          gameStateData = docs[0].gameState
+          console.log('[小黑屋] 从uTools(allDocs方式)加载存档成功')
+        }
       }
     } else {
       // 非uTools环境，从localStorage读取

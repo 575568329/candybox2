@@ -105,10 +105,60 @@ game.setEndGameCallback(async () => {
   showUploadPrompt.value = true
 })
 
+// 窗口关闭前同步保存（beforeunload 中 async/await 不可靠，必须用同步方式）
+const handleBeforeUnload = () => {
+  if (game.isPlaying.value && !game.gameOver.value) {
+    const saveData = {
+      board: game.board.value,
+      score: game.score.value,
+      level: game.level.value,
+      lines: game.lines.value,
+      currentPiece: game.currentPiece.value ? {
+        type: game.currentPiece.value.type,
+        shape: game.currentPiece.value.shape,
+        color: game.currentPiece.value.color,
+        x: game.currentPiece.value.x,
+        y: game.currentPiece.value.y
+      } : null,
+      nextPiece: game.nextPiece.value ? {
+        type: game.nextPiece.value.type,
+        shape: game.nextPiece.value.shape,
+        color: game.nextPiece.value.color,
+        x: game.nextPiece.value.x,
+        y: game.nextPiece.value.y
+      } : null,
+      timestamp: Date.now()
+    }
+
+    try {
+      if (window.utools && window.utools.db) {
+        const savePrefix = 'game_save_tetris_'
+        const docId = savePrefix + 'current'
+        const existing = window.utools.db.get(docId)
+        const doc = {
+          _id: docId,
+          data: JSON.stringify(saveData),
+          updatedAt: Date.now()
+        }
+        if (existing && existing._rev) {
+          doc._rev = existing._rev
+        }
+        window.utools.db.put(doc)
+      } else {
+        localStorage.setItem('tetris_save', JSON.stringify(saveData))
+      }
+    } catch (e) {
+      console.error('[Tetris] beforeunload 保存失败:', e)
+    }
+  }
+}
+
 // 生命周期
 onMounted(async () => {
   analyticsTracker.startGameSession({ id: 'tetris', name: '俄罗斯方块' })
   
+  window.addEventListener('beforeunload', handleBeforeUnload)
+
   userInfo.value = ranking.getUserInfo()
   game.initBoard()
   
@@ -134,6 +184,8 @@ onMounted(async () => {
 
 onUnmounted(async () => {
   game.stopGameLoop()
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+
   if (game.isPlaying.value && !game.gameOver.value) {
     await save.saveGame({
       board: game.board.value,
