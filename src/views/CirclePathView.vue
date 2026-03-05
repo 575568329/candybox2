@@ -103,6 +103,13 @@ const onIframeError = () => {
   hasError.value = true
 }
 
+// 切换地图
+const changeMap = () => {
+  if (iframeRef.value && iframeRef.value.contentWindow) {
+    iframeRef.value.contentWindow.postMessage({ type: 'CHANGE_MAP' }, '*')
+  }
+}
+
 onUnmounted(() => {
   console.log('[CirclePath] 组件已卸载')
   
@@ -146,7 +153,14 @@ onUnmounted(() => {
             <p class="game-english-name">Circle Path - 极简节奏挑战</p>
           </div>
         </div>
-        <div class="spacer"></div>
+        <button
+          class="map-btn"
+          @click="changeMap"
+          title="切换地图"
+        >
+          <span class="map-icon">🎨</span>
+          <span class="map-text">切换地图</span>
+        </button>
       </div>
     </div>
 
@@ -274,6 +288,25 @@ onUnmounted(() => {
 }
 
 .back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.map-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.map-btn:hover {
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.3);
 }

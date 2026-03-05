@@ -12,6 +12,19 @@ window.onload = function() {
      game.state.start("PlayGame");
 }
 
+var mapIndex = localStorage.getItem("circlepath_mapIndex") || 0;
+mapIndex = parseInt(mapIndex);
+
+window.addEventListener('message', function(event) {
+     if (event.data.type === 'CHANGE_MAP') {
+          mapIndex = (mapIndex + 1) % bgColors.length;
+          localStorage.setItem("circlepath_mapIndex", mapIndex);
+          if (game && game.state) {
+               game.state.start("PlayGame");
+          }
+     }
+});
+
 var playGame = function(game){};
 
 playGame.prototype = {
@@ -24,6 +37,7 @@ playGame.prototype = {
           game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
      },
      create: function(){
+          game.rnd.sow([mapIndex]);
           this.savedData = localStorage.getItem("circlepath")==null?{score:0}:JSON.parse(localStorage.getItem("circlepath"));
           var style = {
                font: "bold 64px Arial",
@@ -32,10 +46,8 @@ playGame.prototype = {
           var text = game.add.text(0, game.height - 64, "最高分: "+this.savedData.score.toString(), style);
           this.destroy = false;
           this.saveRotationSpeed = rotationSpeed;
-          this.tintColor = bgColors[game.rnd.between(0, bgColors.length - 1)];
-          do{
-               this.tintColor2 = bgColors[game.rnd.between(0, bgColors.length - 1)];     
-          } while(this.tintColor == this.tintColor2)
+          this.tintColor = bgColors[mapIndex % bgColors.length];
+          this.tintColor2 = bgColors[(mapIndex + 1) % bgColors.length];
           game.stage.backgroundColor = this.tintColor;
           this.targetArray = [];
           this.steps = 0;
