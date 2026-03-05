@@ -144,6 +144,9 @@ onUnmounted(async () => {
       nextPiece: game.nextPiece.value
     })
   }
+
+  // 结束游戏会话（埋点）
+  analyticsTracker.endGameSession()
 })
 </script>
 

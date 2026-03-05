@@ -232,6 +232,10 @@ const onIframeError = () => {
 
 onUnmounted(() => {
   console.log('[小黑屋] 组件已卸载')
+  
+  // 结束游戏会话（埋点）
+  analyticsTracker.endGameSession()
+
   // 清除定时器
   if (headerTimer) {
     clearTimeout(headerTimer)

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { analyticsTracker } from '../utils/analyticsTracker'
 
 const router = useRouter()
 
@@ -61,6 +62,13 @@ const showExitConfirm = ref(false)
 // 组件挂载
 onMounted(() => {
   console.log('[Hextris] 组件已挂载')
+  
+  // 开始游戏会话（埋点）
+  analyticsTracker.startGameSession({
+    id: 'hextris',
+    name: '六边形俄罗斯方块'
+  })
+
   // 3秒后自动隐藏导航栏
   scheduleHideHeader()
 })
@@ -72,6 +80,8 @@ const goBack = () => {
 
 const confirmExit = () => {
   showExitConfirm.value = false
+  // 结束游戏会话（埋点）
+  analyticsTracker.endGameSession()
   router.push('/')
 }
 
@@ -95,6 +105,10 @@ const onIframeError = () => {
 
 onUnmounted(() => {
   console.log('[Hextris] 组件已卸载')
+  
+  // 如果还有未结束的会话，结束它
+  analyticsTracker.endGameSession()
+
   // 清除定时器
   if (headerTimer) {
     clearTimeout(headerTimer)

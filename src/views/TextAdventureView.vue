@@ -268,6 +268,10 @@ const onIframeError = () => {
 
 onUnmounted(() => {
   console.log('[深空迷梦] 组件已卸载')
+  
+  // 结束游戏会话（埋点）
+  analyticsTracker.endGameSession()
+
   // 清除定时器
   if (headerTimer) {
     clearTimeout(headerTimer)

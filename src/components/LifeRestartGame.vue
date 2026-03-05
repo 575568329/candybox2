@@ -135,6 +135,8 @@ onUnmounted(() => {
   if (toastTimer) {
     clearTimeout(toastTimer)
   }
+  // 结束游戏会话（埋点）
+  analyticsTracker.endGameSession()
 })
 </script>
 

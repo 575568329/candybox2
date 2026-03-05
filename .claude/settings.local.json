@@ -19,7 +19,10 @@
       "Bash(test:*)",
       "Bash(pnpm xlsx2json:*)",
       "Bash(npx pnpm:*)",
-      "Bash(del \"d:\\\\cursorObject\\\\小游戏\\\\src\\\\components\\\\HexTetris.vue\")"
+      "Bash(del \"d:\\\\cursorObject\\\\小游戏\\\\src\\\\components\\\\HexTetris.vue\")",
+      "Bash(find 'd:\\\\cursorObject\\\\小游戏\\\\public\\\\tank\\\\js' -name \"*.js\" -exec grep -l \"localStorage\\\\|save\" {} ;)",
+      "Bash(ls -la \"d:\\\\cursorObject\\\\小游戏\\\\public\\\\tank\"\" 2>/dev/null || echo \"目录不存在 \")",
+      "Bash(ls -la \"d:\\\\cursorObject\\\\小游戏\\\\dist\\\\tank\"\" 2>/dev/null || echo \"目录不存在 \")"
     ]
   }
 }

@@ -18,6 +18,11 @@ const routes = [
     component: () => import('../views/HextrisView.vue')
   },
   {
+    path: '/circlepath',
+    name: 'CirclePath',
+    component: () => import('../views/CirclePathView.vue')
+  },
+  {
     path: '/tetris',
     name: 'Tetris',
     component: () => import('../views/TetrisGameView.vue')

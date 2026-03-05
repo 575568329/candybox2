@@ -74,6 +74,21 @@ const games = ref([
     source: '转载自 hextris.io'
   },
   {
+    id: 'circlepath',
+    name: '环形之路',
+    englishName: 'Circle Path',
+    description: '极简风格的节奏点击游戏，在环形之路上精准跳跃',
+    icon: '●',
+    path: '/circlepath',
+    color: '#62bd18',
+    category: 'puzzle',
+    tags: ['益智', '节奏', '极简', '转载'],
+    difficulty: '简单',
+    players: '单人',
+    duration: '每局1-5分钟',
+    source: '转载自 circlepath'
+  },
+  {
     id: 'adarkroom',
     name: '小黑屋',
     englishName: 'A Dark Room',

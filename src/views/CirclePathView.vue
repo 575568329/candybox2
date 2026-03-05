@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { analyticsTracker } from '../utils/analyticsTracker'
 
@@ -8,19 +8,6 @@ const router = useRouter()
 const iframeRef = ref(null)
 const isLoading = ref(true)
 const hasError = ref(false)
-
-// 音效开关状态
-const soundEnabled = ref(false)
-
-// 计算坦克游戏 URL，确保在开发和生产环境都能正确加载
-const tankGameUrl = computed(() => {
-  // 使用相对路径，兼容开发和打包后的环境
-  return './tank/index.html'
-})
-
-// 游戏缩放
-const gameScale = ref(1)
-const gameTransform = ref('')
 
 // 导航栏自动收起
 const headerVisible = ref(true)
@@ -74,44 +61,17 @@ const showExitConfirm = ref(false)
 
 // 组件挂载
 onMounted(() => {
-  console.log('[Tank] 组件已挂载')
-  
+  console.log('[CirclePath] 组件已挂载')
+
   // 开始游戏会话（埋点）
   analyticsTracker.startGameSession({
-    id: 'tank',
-    name: '坦克大战'
+    id: 'circlepath',
+    name: '环形之路'
   })
 
   // 3秒后自动隐藏导航栏
   scheduleHideHeader()
-  // 计算游戏缩放
-  calculateGameScale()
-  // 监听窗口大小变化
-  window.addEventListener('resize', calculateGameScale)
 })
-
-// 计算游戏缩放比例
-const calculateGameScale = () => {
-  // 坦克大战原始尺寸: 512x416
-  const originalWidth = 512
-  const originalHeight = 416
-
-  // 获取容器可用尺寸（减去导航栏）
-  const containerWidth = window.innerWidth
-  const containerHeight = window.innerHeight - 48 // 减去导航栏高度
-
-  // 计算缩放比例，保持游戏宽高比
-  const scaleX = containerWidth / originalWidth
-  const scaleY = containerHeight / originalHeight
-  const scale = Math.min(scaleX, scaleY) // 自适应缩放
-
-  gameScale.value = scale
-
-  // 只设置缩放，由flex布局居中
-  gameTransform.value = `scale(${scale})`
-
-  console.log('[Tank] 游戏缩放:', scale)
-}
 
 // 返回游戏列表
 const goBack = () => {
@@ -131,40 +91,22 @@ const cancelExit = () => {
 
 // iframe 加载完成
 const onIframeLoad = () => {
-  console.log('[Tank] iframe 加载完成')
+  console.log('[CirclePath] iframe 加载完成')
   isLoading.value = false
   hasError.value = false
-  // 发送初始音效状态到游戏
-  sendSoundState()
-}
-
-// 发送音效状态到 iframe
-const sendSoundState = () => {
-  if (iframeRef.value && iframeRef.value.contentWindow) {
-    iframeRef.value.contentWindow.postMessage({
-      type: 'toggleSound',
-      enabled: soundEnabled.value
-    }, '*')
-  }
-}
-
-// 切换音效
-const toggleSound = () => {
-  soundEnabled.value = !soundEnabled.value
-  sendSoundState()
 }
 
 // iframe 加载失败
 const onIframeError = () => {
-  console.error('[Tank] iframe 加载失败')
+  console.error('[CirclePath] iframe 加载失败')
   isLoading.value = false
   hasError.value = true
 }
 
 onUnmounted(() => {
-  console.log('[Tank] 组件已卸载')
+  console.log('[CirclePath] 组件已卸载')
   
-  // 结束游戏会话（埋点）
+  // 如果还有未结束的会话，结束它
   analyticsTracker.endGameSession()
 
   // 清除定时器
@@ -172,13 +114,11 @@ onUnmounted(() => {
     clearTimeout(headerTimer)
     headerTimer = null
   }
-  // 移除窗口大小监听
-  window.removeEventListener('resize', calculateGameScale)
 })
 </script>
 
 <template>
-  <div class="tank-view" @mousemove="onMouseMoveGame">
+  <div class="circlepath-view" @mousemove="onMouseMoveGame">
     <!-- 顶部感应区，用于在导航栏隐藏时唤出 -->
     <div class="header-trigger" @mouseenter="showHeader"></div>
 
@@ -200,24 +140,18 @@ onUnmounted(() => {
           <span class="back-text">返回</span>
         </button>
         <div class="game-title">
-          <span class="game-icon">🎖️</span>
+          <span class="game-icon">●</span>
           <div class="title-text">
-            <h1 class="game-name">坦克大战</h1>
-            <p class="game-english-name">Tank Battle - 经典射击游戏</p>
+            <h1 class="game-name">环形之路</h1>
+            <p class="game-english-name">Circle Path - 极简节奏挑战</p>
           </div>
         </div>
-        <button
-          class="sound-btn"
-          @click="toggleSound"
-          :title="soundEnabled ? '关闭音效' : '开启音效'"
-        >
-          <span class="sound-icon">{{ soundEnabled ? '🔊' : '🔇' }}</span>
-        </button>
+        <div class="spacer"></div>
       </div>
     </div>
 
     <!-- 游戏容器 -->
-    <div class="game-container" ref="gameContainer">
+    <div class="game-container">
       <!-- 加载状态 -->
       <div v-if="isLoading" class="loading-state">
         <div class="loading-spinner"></div>
@@ -232,22 +166,17 @@ onUnmounted(() => {
         <button class="error-btn" @click="goBack">返回游戏列表</button>
       </div>
 
-      <!-- 游戏框架容器 -->
-      <div
+      <!-- 游戏框架 -->
+      <iframe
         v-show="!isLoading && !hasError"
-        class="game-frame-wrapper"
-        :style="{ transform: gameTransform }"
-      >
-        <iframe
-          ref="iframeRef"
-          :src="tankGameUrl"
-          class="game-frame"
-          @load="onIframeLoad"
-          @error="onIframeError"
-          frameborder="0"
-          allowfullscreen
-        ></iframe>
-      </div>
+        ref="iframeRef"
+        src="circlepath/index.html"
+        class="game-frame"
+        @load="onIframeLoad"
+        @error="onIframeError"
+        frameborder="0"
+        allowfullscreen
+      ></iframe>
     </div>
 
     <!-- 退出确认弹窗 -->
@@ -284,10 +213,10 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 
-.tank-view {
+.circlepath-view {
   width: 100%;
   height: 100vh;
-  background: #1a1a2e;
+  background: #1a1a1a;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -334,20 +263,19 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
+  padding: 4px 12px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 5px;
+  border-radius: 6px;
   color: white;
-  font-size: 11px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.3);
-  transform: translateX(-1px);
 }
 
 .game-title {
@@ -361,7 +289,7 @@ onUnmounted(() => {
 
 .game-icon {
   font-size: 24px;
-  color: #5c6bc0;
+  color: #62bd18;
 }
 
 .title-text {
@@ -386,59 +314,17 @@ onUnmounted(() => {
   width: 60px;
 }
 
-/* 音效按钮 */
-.sound-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 5px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.sound-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: scale(1.05);
-}
-
-.sound-icon {
-  font-size: 16px;
-}
-
 /* 游戏容器 */
 .game-container {
   flex: 1;
   position: relative;
   overflow: hidden;
-  background: #000;
-}
-
-/* 游戏框架包装器 - 用于缩放和定位 */
-.game-frame-wrapper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform-origin: center center;
-  transition: transform 0.1s ease-out;
 }
 
 .game-frame {
-  width: 512px;
-  height: 416px;
+  width: 100%;
+  height: 100%;
   border: none;
-  display: block;
-  background: #000;
-  box-sizing: border-box;
 }
 
 /* 加载状态 */
@@ -453,14 +339,14 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 20px;
-  background: #1a1a2e;
+  background: #1a1a1a;
 }
 
 .loading-spinner {
   width: 40px;
   height: 40px;
   border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #5c6bc0;
+  border-top-color: #62bd18;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -486,7 +372,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  background: #1a1a2e;
+  background: #1a1a1a;
   padding: 20px;
 }
 
@@ -508,7 +394,7 @@ onUnmounted(() => {
 .error-btn {
   margin-top: 16px;
   padding: 8px 20px;
-  background: #5c6bc0;
+  background: #62bd18;
   border: none;
   border-radius: 6px;
   color: white;
@@ -531,7 +417,7 @@ onUnmounted(() => {
 }
 
 .confirm-dialog {
-  background: #1a1a2e;
+  background: #2c3e50;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 24px;

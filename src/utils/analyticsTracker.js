@@ -84,14 +84,67 @@ class AnalyticsTracker {
     this.events = []
 
     try {
+      // 获取现有数据
       const res = await fetch(API_URL)
-      const existing = res.ok ? await res.json() : { events: [] }
+      const existingData = res.ok ? await res.json() : { events: [] }
+
+      // --- v2.2 逻辑集成：统计摘要和数据保留策略 ---
+      const MAX_EVENTS = 10000 
+      const DAYS_TO_KEEP = 60 
+      const TIME_THRESHOLD = Date.now() - (DAYS_TO_KEEP * 24 * 60 * 60 * 1000)
+
+      // 更新用户表
+      const users = (existingData && existingData.users) ? { ...existingData.users } : {}
+      users[this.userId] = Date.now()
+
+      // 过滤活跃用户
+      for (const id in users) {
+        if (users[id] < TIME_THRESHOLD) delete users[id]
+      }
+
+      // 构建统计摘要
+      const today = new Date().toISOString().split('T')[0]
+      const summary = (existingData && existingData.summary) ? { ...existingData.summary } : {
+        totalUsers: 0,
+        gameStats: {},
+        dailyActive: {}
+      }
+
+      summary.totalUsers = Object.keys(users).length
+
+      if (!summary.dailyActive[today]) summary.dailyActive[today] = []
+      if (!summary.dailyActive[today].includes(this.userId)) {
+        summary.dailyActive[today].push(this.userId)
+      }
+
+      eventsToSend.forEach(event => {
+        if (event.t === 'ge' && event.d && event.d.g) {
+          const { g, d } = event.d
+          if (!summary.gameStats[g]) summary.gameStats[g] = { p: 0, d: 0 }
+          summary.gameStats[g].p += 1
+          summary.gameStats[g].d += (d || 0)
+        }
+      })
+
+      // 清理 DAU
+      const dauLimit = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      for (const date in summary.dailyActive) {
+        if (date < dauLimit) delete summary.dailyActive[date]
+      }
+
+      // 合并并过滤事件
+      const allEvents = [...(existingData.events || []), ...eventsToSend]
+      const filteredEvents = allEvents
+        .filter(event => event.ts > TIME_THRESHOLD)
+        .slice(-MAX_EVENTS)
 
       const updated = {
-        v: '3.0',
+        v: '3.1', // 升级到 3.1，包含 3.0 的基础和 2.2 的摘要功能
         u: this.userId,
+        users: users,
+        summary: summary,
         ls: Date.now(),
-        events: [...(existing.events || []), ...eventsToSend].slice(-500)
+        events: filteredEvents
       }
 
       await fetch(API_URL, {
@@ -123,17 +176,25 @@ class AnalyticsTracker {
     window.addEventListener('beforeunload', () => {
       this.endGameSession()
       
-      if (navigator.sendBeacon && this.events.length > 0) {
-        const blob = new Blob([JSON.stringify({
-          v: '3.0',
-          u: this.userId,
-          ls: Date.now(),
-          events: this.events
-        })], { type: 'application/json' })
-        
-        navigator.sendBeacon(API_URL, blob)
+      // 保存未同步事件到本地缓存
+      if (this.events.length > 0) {
+        localStorage.setItem('pending_analytics_events', JSON.stringify(this.events))
       }
     })
+
+    // 启动时加载缓存事件
+    const cached = localStorage.getItem('pending_analytics_events')
+    if (cached) {
+      try {
+        const events = JSON.parse(cached)
+        if (Array.isArray(events)) {
+          this.events = [...events, ...this.events]
+          localStorage.removeItem('pending_analytics_events')
+        }
+      } catch (e) {
+        console.error('[埋点] 加载缓存失败:', e)
+      }
+    }
 
     // 页面可见性变化时同步
     document.addEventListener('visibilitychange', () => {
