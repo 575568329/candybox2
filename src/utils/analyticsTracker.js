@@ -20,6 +20,7 @@ class AnalyticsTracker {
     this.userId = this.getUserId()
     this.syncTimer = null
     this.currentGame = null
+    this.sessionStart = 0
   }
 
   getUserId() {
@@ -51,13 +52,19 @@ class AnalyticsTracker {
   startGameSession(game) {
     this.track('gs', { g: game.id, n: game.name })
     this.currentGame = game
+    this.sessionStart = Date.now()
   }
 
   // 游戏会话结束
   endGameSession() {
     if (this.currentGame) {
-      this.track('ge', { g: this.currentGame.id })
+      const duration = this.sessionStart > 0 ? Math.floor((Date.now() - this.sessionStart) / 1000) : 0
+      this.track('ge', { 
+        g: this.currentGame.id,
+        d: duration // 添加时长（秒）
+      })
       this.currentGame = null
+      this.sessionStart = 0
     }
   }
 
@@ -78,7 +85,23 @@ class AnalyticsTracker {
 
   // 同步到服务器
   async sync() {
-    if (!this.enabled || this.events.length === 0) return
+    if (!this.enabled || (this.events.length === 0 && !localStorage.getItem('pending_analytics_events'))) return
+
+    // 合并本地缓存
+    const cached = localStorage.getItem('pending_analytics_events')
+    if (cached) {
+      try {
+        const cachedEvents = JSON.parse(cached)
+        if (Array.isArray(cachedEvents)) {
+          this.events = [...cachedEvents, ...this.events]
+        }
+        localStorage.removeItem('pending_analytics_events')
+      } catch (e) {
+        console.error('[埋点] 解析缓存失败:', e)
+      }
+    }
+
+    if (this.events.length === 0) return
 
     const eventsToSend = [...this.events]
     this.events = []
@@ -88,7 +111,7 @@ class AnalyticsTracker {
       const res = await fetch(API_URL)
       const existingData = res.ok ? await res.json() : { events: [] }
 
-      // --- v2.2 逻辑集成：统计摘要和数据保留策略 ---
+      // --- v3.1 逻辑：统计摘要和数据保留策略 ---
       const MAX_EVENTS = 10000 
       const DAYS_TO_KEEP = 60 
       const TIME_THRESHOLD = Date.now() - (DAYS_TO_KEEP * 24 * 60 * 60 * 1000)
@@ -117,6 +140,7 @@ class AnalyticsTracker {
         summary.dailyActive[today].push(this.userId)
       }
 
+      // 更新游戏统计
       eventsToSend.forEach(event => {
         if (event.t === 'ge' && event.d && event.d.g) {
           const { g, d } = event.d
@@ -126,7 +150,7 @@ class AnalyticsTracker {
         }
       })
 
-      // 清理 DAU
+      // 清理 DAU (保留30天)
       const dauLimit = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       for (const date in summary.dailyActive) {
         if (date < dauLimit) delete summary.dailyActive[date]
@@ -139,7 +163,7 @@ class AnalyticsTracker {
         .slice(-MAX_EVENTS)
 
       const updated = {
-        v: '3.1', // 升级到 3.1，包含 3.0 的基础和 2.2 的摘要功能
+        v: '3.1',
         u: this.userId,
         users: users,
         summary: summary,
@@ -156,6 +180,7 @@ class AnalyticsTracker {
       console.log('[埋点] 同步成功', eventsToSend.length, '个事件')
     } catch (e) {
       console.error('[埋点] 同步失败:', e)
+      // 失败时将事件放回队列
       this.events = [...eventsToSend, ...this.events]
     }
   }
@@ -172,29 +197,17 @@ class AnalyticsTracker {
     // 每5分钟同步一次
     this.syncTimer = setInterval(() => this.sync(), 300000)
 
-    // 页面关闭时同步
+    // 页面关闭时确保结束会话并保存
     window.addEventListener('beforeunload', () => {
       this.endGameSession()
       
-      // 保存未同步事件到本地缓存
       if (this.events.length > 0) {
         localStorage.setItem('pending_analytics_events', JSON.stringify(this.events))
       }
     })
 
-    // 启动时加载缓存事件
-    const cached = localStorage.getItem('pending_analytics_events')
-    if (cached) {
-      try {
-        const events = JSON.parse(cached)
-        if (Array.isArray(events)) {
-          this.events = [...events, ...this.events]
-          localStorage.removeItem('pending_analytics_events')
-        }
-      } catch (e) {
-        console.error('[埋点] 加载缓存失败:', e)
-      }
-    }
+    // 启动时尝试同步一次（包含加载缓存）
+    this.sync()
 
     // 页面可见性变化时同步
     document.addEventListener('visibilitychange', () => {
@@ -218,7 +231,8 @@ class AnalyticsTracker {
       enabled: this.enabled,
       userId: this.userId,
       pendingEvents: this.events.length,
-      currentGame: this.currentGame
+      currentGame: this.currentGame,
+      sessionStart: this.sessionStart
     }
   }
 }
