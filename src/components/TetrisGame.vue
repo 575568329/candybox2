@@ -21,6 +21,13 @@ const userInfo = ref(null)
 const toast = ref({ show: false, message: '', type: 'info' })
 let toastTimer = null
 
+// 切换硬降/软降按键
+const toggleSwapDropKeys = async () => {
+  keyboard.swapDropKeys.value = !keyboard.swapDropKeys.value
+  await keyboard.saveSwapKeysSetting({ getGameSavePrefix: (id) => `game_save_${id}_` })
+  showToast(`已切换为: ↓/${keyboard.swapDropKeys.value ? '硬降' : '缓降'}, 空格/${keyboard.swapDropKeys.value ? '缓降' : '硬降'}`)
+}
+
 // Toast 提示
 const showToast = (message, type = 'info', duration = 3000) => {
   if (toastTimer) clearTimeout(toastTimer)
@@ -268,6 +275,16 @@ onUnmounted(async () => {
             <div class="control-item">空格 {{ keyboard.swapDropKeys.value ? '缓降' : '硬降' }}</div>
             <div class="control-item">Ctrl+F 专注模式</div>
           </div>
+
+          <div class="info-box setting-box">
+            <h3>按键设置</h3>
+            <div class="setting-row" @click="toggleSwapDropKeys">
+              <span class="setting-label">软硬互换</span>
+              <div class="toggle-slider" :class="{ active: keyboard.swapDropKeys.value }">
+                <div class="slider-thumb"></div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 游戏板 -->
@@ -501,6 +518,44 @@ onUnmounted(async () => {
 /* 操作说明 */
 .controls { font-size: 10px; }
 .control-item { padding: 2px 0; color: rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+
+/* 设置开关 */
+.setting-box { cursor: default; }
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.setting-row:hover { opacity: 0.8; }
+.setting-label { font-size: 11px; color: rgba(255, 255, 255, 0.8); }
+.toggle-slider {
+  width: 32px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  position: relative;
+  transition: all 0.3s;
+}
+.toggle-slider.active {
+  background: #22c55e;
+}
+.slider-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  transition: all 0.3s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.toggle-slider.active .slider-thumb {
+  left: 18px;
+}
 
 /* 游戏板 */
 .board-container { grid-column: 2; justify-self: center; }

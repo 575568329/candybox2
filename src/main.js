@@ -4,12 +4,12 @@ import router from './router'
 import App from './App.vue'
 import './main.css'
 
-// 初始化 vConsole（用于调试）
+// 初始化 vConsole（仅开发环境）
 let vconsole = null
 let vConsoleVisible = false // 跟踪 vConsole 的可见状态
 
-// 在所有环境初始化 vConsole（可通过快捷键控制）
-if (typeof window !== 'undefined') {
+// 仅在开发环境加载 vConsole
+if (import.meta.env.DEV && typeof window !== 'undefined') {
   // 动态导入 vConsole
   import('vconsole').then((module) => {
     const VConsole = module.default

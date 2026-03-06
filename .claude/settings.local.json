@@ -25,7 +25,8 @@
       "Bash(ls -la \"d:\\\\cursorObject\\\\小游戏\\\\dist\\\\tank\"\" 2>/dev/null || echo \"目录不存在 \")",
       "Bash(git mv:*)",
       "Bash(git rm:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }
