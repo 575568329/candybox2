@@ -20,8 +20,30 @@ export default defineConfig({
       overlay: false
     }
   },
+  build: {
+    // 代码分割配置
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router']
+        }
+      }
+    },
+    // chunk 大小警告阈值
+    chunkSizeWarningLimit: 500,
+    // CSS 代码分割
+    cssCodeSplit: true,
+    // 压缩配置
+    minify: 'terser',
+    terserOptions: {
+    compress: {
+      drop_console: true,  // 生产环境移除 console
+      drop_debugger: true
+    }
+  }
+  },
   // 忽略 jQuery source map 警告
   optimizeDeps: {
-    include: []
+    include: ['vue', 'vue-router']
   }
 })

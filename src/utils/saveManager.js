@@ -6,6 +6,23 @@
 export class SaveGameManager {
   constructor() {
     this.savePrefix = 'game_save_'
+    // 缓存机制
+    this._cache = new Map()
+    this._cacheExpiry = 30000  // 30秒缓存
+  }
+
+  /**
+   * 清除指定前缀的缓存
+   */
+  invalidateCache(prefix) {
+    this._cache.delete(prefix)
+  }
+
+  /**
+   * 清除所有缓存
+   */
+  clearAllCache() {
+    this._cache.clear()
   }
 
   /**
@@ -17,14 +34,34 @@ export class SaveGameManager {
 
   /**
    * 获取所有文档（兼容同步和异步版本）
+   * @param {string} prefix - 文档前缀
+   * @param {boolean} useCache - 是否使用缓存
    */
-  async getAllDocs(prefix) {
-    // 优先使用 promises API（异步）
-    if (window.utools.db.promises && window.utools.db.promises.allDocs) {
-      return await window.utools.db.promises.allDocs(prefix)
+  async getAllDocs(prefix, useCache = true) {
+    // 检查缓存
+    if (useCache && this._cache.has(prefix)) {
+      const cached = this._cache.get(prefix)
+      if (Date.now() - cached.timestamp < this._cacheExpiry) {
+        return cached.data
+      }
     }
-    // 回退到同步 API
-    return window.utools.db.allDocs(prefix)
+
+    // 优先使用 promises API（异步）
+    let result
+    if (window.utools.db.promises && window.utools.db.promises.allDocs) {
+      result = await window.utools.db.promises.allDocs(prefix)
+    } else {
+      // 回退到同步 API
+      result = window.utools.db.allDocs(prefix)
+    }
+
+    // 更新缓存
+    this._cache.set(prefix, {
+      data: result,
+      timestamp: Date.now()
+    })
+
+    return result
   }
 
   /**

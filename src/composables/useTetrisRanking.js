@@ -7,6 +7,7 @@ const RANKING_API = 'https://getpantry.cloud/apiv1/pantry/9eafe9e6-8ff7-41ab-b11
 const MAX_RANKING = 3000
 const DISPLAY_RANKING = 10
 const RANKING_REFRESH_COOLDOWN = 60000
+const RANKING_LOCAL_KEY = 'tetris_ranking_cache'
 
 export function useTetrisRanking() {
   const rankingData = ref([])
@@ -34,7 +35,23 @@ export function useTetrisRanking() {
 
   // 加载排行榜
   const loadRanking = async (forceRefresh = false) => {
+    // 尝试从本地缓存读取
     if (!forceRefresh) {
+      const cached = localStorage.getItem(RANKING_LOCAL_KEY)
+      if (cached) {
+        try {
+          const { data, timestamp } = JSON.parse(cached)
+          if (Date.now() - timestamp < RANKING_REFRESH_COOLDOWN) {
+            rankingData.value = data
+            lastRankingRefreshTime.value = timestamp
+            return { success: true, count: data.length, fromCache: true }
+          }
+        } catch (e) {
+          // 缓存解析失败，继续网络请求
+        }
+      }
+
+      // 检查冷却时间
       const now = Date.now()
       const timeSinceLastRefresh = now - lastRankingRefreshTime.value
       if (timeSinceLastRefresh < RANKING_REFRESH_COOLDOWN) {
@@ -60,6 +77,12 @@ export function useTetrisRanking() {
 
       rankingData.value = ranking
       lastRankingRefreshTime.value = Date.now()
+
+      // 保存到本地缓存
+      localStorage.setItem(RANKING_LOCAL_KEY, JSON.stringify({
+        data: ranking,
+        timestamp: Date.now()
+      }))
 
       return { success: true, count: ranking.length }
     } catch (error) {

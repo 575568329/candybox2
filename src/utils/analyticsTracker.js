@@ -21,6 +21,9 @@ class AnalyticsTracker {
     this.syncTimer = null
     this.currentGame = null
     this.sessionStart = 0
+    // 存储事件监听器引用以便清理
+    this._beforeUnloadHandler = null
+    this._visibilityChangeHandler = null
   }
 
   getUserId() {
@@ -198,23 +201,38 @@ class AnalyticsTracker {
     this.syncTimer = setInterval(() => this.sync(), 300000)
 
     // 页面关闭时确保结束会话并保存
-    window.addEventListener('beforeunload', () => {
+    this._beforeUnloadHandler = () => {
       this.endGameSession()
-      
+
       if (this.events.length > 0) {
         localStorage.setItem('pending_analytics_events', JSON.stringify(this.events))
       }
-    })
+    }
+    window.addEventListener('beforeunload', this._beforeUnloadHandler)
 
     // 启动时尝试同步一次（包含加载缓存）
     this.sync()
 
     // 页面可见性变化时同步
-    document.addEventListener('visibilitychange', () => {
+    this._visibilityChangeHandler = () => {
       if (document.hidden) {
         this.sync()
       }
-    })
+    }
+    document.addEventListener('visibilitychange', this._visibilityChangeHandler)
+  }
+
+  // 销毁实例，清理事件监听器
+  destroy() {
+    this.stopAutoSync()
+    if (this._beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', this._beforeUnloadHandler)
+      this._beforeUnloadHandler = null
+    }
+    if (this._visibilityChangeHandler) {
+      document.removeEventListener('visibilitychange', this._visibilityChangeHandler)
+      this._visibilityChangeHandler = null
+    }
   }
 
   // 停止自动同步
