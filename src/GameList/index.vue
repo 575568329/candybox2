@@ -103,7 +103,8 @@ const games = ref([
     difficulty: '简单',
     players: '单人',
     duration: '每局1-5分钟',
-    source: '转载自 circlepath'
+    source: '转载自 circlepath',
+    githubUrl: 'https://github.com/channingbreeze/games'
   },
   {
     id: 'adarkroom',
@@ -165,7 +166,8 @@ const games = ref([
     tags: ['策略', '射击', '经典', '双人'],
     difficulty: '中等',
     players: '单人/双人',
-    duration: '每局10-30分钟'
+    duration: '每局10-30分钟',
+    githubUrl: 'https://github.com/channingbreeze/games'
   }
 ])
 
