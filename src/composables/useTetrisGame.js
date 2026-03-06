@@ -301,7 +301,7 @@ export function useTetrisGame() {
   const gameLoop = (currentTime) => {
     if (!isPlaying.value || isPaused.value || gameOver.value) {
       lastTime = currentTime
-      gameLoopId = requestAnimationFrame(gameLoop)
+      gameLoopId = null  // 停止循环，节省资源
       return
     }
 
