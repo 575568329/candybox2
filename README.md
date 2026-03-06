@@ -362,8 +362,10 @@ MIT
 
 ## 相关文档
 
+- **[文档导航](./docs/README.md)** - 查看所有技术文档
 - [项目设计规范与图标方案](./docs/DESIGN.md) - UI 设计风格及图标设计规范
 - [数据分析文档](./docs/ANALYTICS.md) - 用户行为统计和数据分析
+- [调试工具使用说明](./docs/DEBUG.md) - vConsole 调试工具使用指南
 - [uTools 官方文档](https://www.u.tools/docs/developer/intro.html)
 - [Vue 3 文档](https://vuejs.org/)
 - [Vite 文档](https://vitejs.dev/)

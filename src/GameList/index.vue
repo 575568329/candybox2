@@ -8,10 +8,26 @@ const router = useRouter()
 
 // 分类
 const categories = ref([
-  { id: 'all', name: '全部', icon: '🎮' },
-  { id: 'rpg', name: '角色扮演', icon: '⚔️' },
-  { id: 'puzzle', name: '益智', icon: '🧩' },
-  { id: 'strategy', name: '策略', icon: '🎯' }
+  {
+    id: 'all',
+    name: '全部',
+    icon: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="18" height="18" rx="3" stroke="currentColor" stroke-width="4"/><rect x="36" y="10" width="18" height="18" rx="3" stroke="currentColor" stroke-width="4"/><rect x="10" y="36" width="18" height="18" rx="3" stroke="currentColor" stroke-width="4"/><rect x="36" y="36" width="18" height="18" rx="3" stroke="currentColor" stroke-width="4"/></svg>`
+  },
+  {
+    id: 'rpg',
+    name: '角色扮演',
+    icon: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8L42 18V30L52 40L42 44L32 56L22 44L12 40L22 30V18L32 8Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M32 8V20M32 38V56M22 30L28 36M42 30L36 36" stroke="currentColor" stroke-width="2"/></svg>`
+  },
+  {
+    id: 'puzzle',
+    name: '益智',
+    icon: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 8L52 16V32L40 44L24 44L12 32V16L32 8Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><circle cx="32" cy="28" r="6" fill="currentColor" fill-opacity="0.3"/></svg>`
+  },
+  {
+    id: 'strategy',
+    name: '策略',
+    icon: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="20" stroke="currentColor" stroke-width="4"/><circle cx="32" cy="32" r="12" stroke="currentColor" stroke-width="4"/><circle cx="32" cy="32" r="4" fill="currentColor"/><path d="M32 8V12M32 52V56M8 32H12M52 32H56" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>`
+  }
 ])
 
 const activeCategory = ref('all')
@@ -71,7 +87,8 @@ const games = ref([
     difficulty: '中等',
     players: '单人',
     duration: '每局5-30分钟',
-    source: '转载自 hextris.io'
+    source: '转载自 hextris.io',
+    githubUrl: 'https://github.com/Hextris/Hextris'
   },
   {
     id: 'circlepath',
@@ -101,7 +118,8 @@ const games = ref([
     difficulty: '困难',
     players: '单人',
     duration: '2-5小时',
-    source: '转载自 doublespeakgames.com'
+    source: '转载自 doublespeakgames.com',
+    githubUrl: 'https://github.com/doublespeakgames/adarkroom'
   },
   {
     id: 'candybox2',
@@ -116,7 +134,8 @@ const games = ref([
     difficulty: '中等',
     players: '单人',
     duration: '2-4小时',
-    isVueComponent: true // 标记为Vue组件游戏
+    isVueComponent: true, // 标记为Vue组件游戏
+    githubUrl: 'https://github.com/weizenbaum/candybox2'
   },
   {
     id: 'liferestart',
@@ -131,7 +150,8 @@ const games = ref([
     difficulty: '简单',
     players: '单人',
     duration: '每局5-15分钟',
-    isVueComponent: true
+    isVueComponent: true,
+    githubUrl: 'https://github.com/VickScarlet/lifeRestart'
   },
   {
     id: 'tank',
@@ -304,6 +324,25 @@ onUnmounted(() => {
   analyticsTracker.stopAutoSync()
   analyticsTracker.sync()
 })
+
+// 复制到剪贴板
+const copyToClipboard = async (text, event) => {
+  event.stopPropagation() // 阻止事件冒泡，防止触发游戏打开
+  try {
+    await navigator.clipboard.writeText(text)
+    // 可以添加一个简单的提示
+    console.log('已复制到剪贴板:', text)
+  } catch (err) {
+    console.error('复制失败:', err)
+    // 降级方案
+    const textArea = document.createElement('textarea')
+    textArea.value = text
+    document.body.appendChild(textArea)
+    textArea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textArea)
+  }
+}
 </script>
 
 <template>
@@ -317,7 +356,7 @@ onUnmounted(() => {
     <!-- 顶部栏 -->
     <div class="top-bar">
       <div class="logo">
-        <span class="logo-icon">🎮</span>
+        <img class="logo-icon" src="/home-logo.png" alt="Logo" />
         <span class="logo-text">小游戏集合</span>
       </div>
       <div class="search-box">
@@ -426,7 +465,7 @@ onUnmounted(() => {
             :class="{ active: activeCategory === category.id }"
             @click="selectCategory(category.id)"
           >
-            <span class="category-icon">{{ category.icon }}</span>
+            <span class="category-icon" v-html="category.icon"></span>
             <span class="category-name">{{ category.name }}</span>
           </div>
         </div>
@@ -473,6 +512,15 @@ onUnmounted(() => {
                   <span class="detail-item">难度: {{ game.difficulty }}</span>
                   <span class="detail-item">{{ game.players }}</span>
                   <span v-if="game.duration" class="detail-item">时长: {{ game.duration }}</span>
+                  <div v-if="game.githubUrl" class="github-container">
+                    <span class="github-url">{{ game.githubUrl }}</span>
+                    <button class="copy-btn" @click="copyToClipboard(game.githubUrl, $event)" title="复制地址">
+                      <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor">
+                        <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                        <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -555,7 +603,16 @@ onUnmounted(() => {
 }
 
 .logo-icon {
-  font-size: 24px;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
+}
+
+.logo:hover .logo-icon {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
 }
 
 .logo-text {
@@ -685,7 +742,29 @@ onUnmounted(() => {
 }
 
 .category-icon {
-  font-size: 24px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
+}
+
+.category-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+}
+
+.category-item:hover .category-icon {
+  color: rgba(255, 255, 255, 0.9);
+  transform: scale(1.1);
+}
+
+.category-item.active .category-icon {
+  color: #667eea;
+  filter: drop-shadow(0 0 6px #667eea);
 }
 
 .category-name {
@@ -697,6 +776,13 @@ onUnmounted(() => {
 .category-item.active .category-name {
   color: white;
   font-weight: 500;
+}
+
+/* 游戏信息区域 - 让它填充剩余空间 */
+.game-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 右侧游戏区域 */
@@ -723,6 +809,9 @@ onUnmounted(() => {
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
 }
 
 .game-card:hover:not(.disabled) {
@@ -831,6 +920,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  margin-top: auto;
 }
 
 .game-tags {
@@ -849,9 +939,48 @@ onUnmounted(() => {
 
 .game-details {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   font-size: 10px;
   color: rgba(255, 255, 255, 0.6);
+  align-items: center;
+}
+
+.github-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.github-url {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 9px;
+  user-select: all;
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.copy-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.copy-btn:active {
+  transform: scale(0.95);
 }
 
 .game-action {
