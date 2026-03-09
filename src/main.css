@@ -9,7 +9,8 @@ body {
   padding: 0;
 }
 
-button {
+/* 只影响非 Element Plus 的普通按钮 */
+button:not(.el-button):not([class*="el-"]) {
   border: none;
   background: none var(--blue);
   color: var(--light);
@@ -18,12 +19,12 @@ button {
   transition: opacity .2s;
 }
 
-button:disabled {
+button:not(.el-button):not([class*="el-"]):disabled {
   filter: grayscale(1);
   cursor: not-allowed;
 }
 
-button:not(:disabled):active {
+button:not(.el-button):not([class*="el-"]):not(:disabled):active {
   opacity: 0.6;
 }
 
@@ -65,4 +66,37 @@ textarea {
 /* 隐藏 vConsole 的默认切换按钮，只通过快捷键控制 */
 .vc-switch {
   display: none !important;
+}
+
+/* 修仙游戏 - MessageBox 装备信息弹窗全局样式 */
+.monsterinfo {
+  display: flex !important;
+  justify-content: center !important;
+}
+
+.monsterinfo-box {
+  display: grid !important;
+  grid-template-columns: 1fr 20px 1fr !important;
+  gap: 10px !important;
+}
+
+.monsterinfo-box p {
+  display: contents !important;
+}
+
+.monsterinfo-box .description {
+  text-align: left !important;
+}
+
+.monsterinfo-box .icon {
+  text-align: center !important;
+}
+
+.monsterinfo-box .value {
+  text-align: left !important;
+}
+
+/* 新手礼包弹窗样式 */
+.newbieinfo-box p {
+  margin-bottom: 10px !important;
 }

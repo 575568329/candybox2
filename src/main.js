@@ -1,6 +1,8 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+import ElementPlus from 'element-plus'
+import 'element-plus/dist/index.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import './utils/utools-mock.js'
 import router from './router'
@@ -62,6 +64,9 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
 }
 
 const app = createApp(App)
+
+// 使用 Element Plus
+app.use(ElementPlus)
 
 // 创建并配置 Pinia
 const pinia = createPinia()
