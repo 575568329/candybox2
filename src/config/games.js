@@ -136,6 +136,22 @@ export const games = [
     players: '单人/双人',
     duration: '每局10-30分钟',
     githubUrl: 'https://github.com/channingbreeze/games'
+  },
+  {
+    id: 'xiuxian',
+    name: '文字修仙',
+    englishName: 'Xiuxian Game',
+    description: '完整的文字修仙RPG游戏，修炼、打怪、装备、NPC交互',
+    icon: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="20" r="12" stroke="currentColor" stroke-width="4"/><path d="M20 56L32 36L44 56" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="48" r="4" fill="currentColor"/><path d="M32 8V12M16 24L12 28M48 24L52 28" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`,
+    path: '/xiuxian',
+    color: '#8B4513',
+    category: 'rpg',
+    tags: ['RPG', '修仙', '文字', '完整'],
+    difficulty: '困难',
+    players: '单人',
+    duration: '长期游戏',
+    githubUrl: 'https://github.com/setube/vue-xiuxiangame.git',
+    isVueComponent: true
   }
 ]
 

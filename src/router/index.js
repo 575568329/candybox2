@@ -55,6 +55,57 @@ const routes = [
     name: 'Tank',
     component: () => import('../views/TankView.vue'),
     meta: { category: 'strategy' }
+  },
+
+  // 修仙游戏（使用嵌套路由）
+  {
+    path: '/xiuxian',
+    name: 'XiuxianGame',
+    component: () => import('../views/XiuxianGameView.vue'),
+    meta: { category: 'rpg', isVueComponent: true },
+    redirect: '/xiuxian',
+    children: [
+      {
+        path: '',
+        name: 'XiuxianIndex',
+        component: () => import('../xiuxian/views/indexPage.vue')
+      },
+      {
+        path: 'home',
+        name: 'XiuxianHome',
+        component: () => import('../xiuxian/views/homePage.vue')
+      },
+      {
+        path: 'cultivate',
+        name: 'XiuxianCultivate',
+        component: () => import('../xiuxian/views/cultivatePage.vue')
+      },
+      {
+        path: 'map',
+        name: 'XiuxianMap',
+        component: () => import('../xiuxian/views/mapExploration.vue')
+      },
+      {
+        path: 'explore',
+        name: 'XiuxianExplore',
+        component: () => import('../xiuxian/views/explorePage.vue')
+      },
+      {
+        path: 'boss',
+        name: 'XiuxianBoss',
+        component: () => import('../xiuxian/views/bossPage.vue')
+      },
+      {
+        path: 'endlesstower',
+        name: 'XiuxianEndlessTower',
+        component: () => import('../xiuxian/views/endlessPage.vue')
+      },
+      {
+        path: 'game',
+        name: 'XiuxianGamePage',
+        component: () => import('../xiuxian/views/game/game.vue')
+      }
+    ]
   }
 ]
 

@@ -1,4 +1,7 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import './utils/utools-mock.js'
 import router from './router'
 import App from './App.vue'
@@ -59,6 +62,16 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
 }
 
 const app = createApp(App)
+
+// 创建并配置 Pinia
+const pinia = createPinia()
+pinia.use(piniaPluginPersistedstate)
+app.use(pinia)
+
+// 注册 Element Plus 图标
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+  app.component(key, component)
+}
 
 app.use(router)
 app.mount('#app')

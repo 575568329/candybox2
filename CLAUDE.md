@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 这是一个基于 **uTools 插件**的游戏集合，使用 **Vue 3 + Vite** 构建。应用运行在 uTools 的嵌入式浏览器中，提供云存档、数据统计和统一的游戏体验。
 
-**技术栈**: Vue 3 (Composition API)、Vite 6、Vue Router 4、uTools API
+**技术栈**: Vue 3 (Composition API)、Vite 6、Vue Router 4、Pinia、Element Plus、uTools API
 
 ## 开发命令
 
@@ -27,14 +27,15 @@ npm run build
 
 ### 游戏集成模式
 
-代码库支持两种截然不同的游戏集成方式：
+代码库支持三种游戏集成方式：
 
 #### 1. Vue 组件游戏（原生）
 作为 Vue 组件实现的游戏，完全集成到应用生态系统中。
-- **示例**: 俄罗斯方块、糖果盒子2
+- **示例**: 俄罗斯方块、糖果盒子2、文字修仙
 - **结构**: `src/components/` 中的游戏组件 + `src/views/` 中的视图包装器
 - **优势**: 完全的 UI 控制、状态管理集成、直接访问 uTools API
 - **俄罗斯方块特有**: 使用 `src/composables/useTetris*.js` 中的组合式函数模式实现模块化逻辑
+- **文字修仙特有**: 使用嵌套路由和独立模块系统（`src/xiuxian/`），包含完整的 RPG 机制
 
 #### 2. iframe 嵌入游戏（外部）
 通过 iframe 嵌入的现有游戏，使用自定义消息传递实现存档/加载。
@@ -47,10 +48,18 @@ npm run build
 
 ```
 src/
-├── GameList/index.vue       # 游戏选择中心 + 游戏配置数组
+├── GameList/index.vue       # 游戏选择中心
+├── config/
+│   └── games.js             # 游戏配置文件（集中管理所有游戏信息）
 ├── views/                   # 每个游戏的视图包装器（导航 + 存档控制）
 ├── components/              # Vue 组件游戏
 ├── composables/             # Vue 3 组合式函数（仅俄罗斯方块使用）
+├── xiuxian/                 # 文字修仙游戏模块
+│   ├── views/              # 游戏页面（修炼、地图、探索等）
+│   ├── components/         # 游戏组件
+│   ├── plugins/            # 游戏插件（装备、商店、NPC等）
+│   ├── utils/              # 工具函数
+│   └── XiuxianGame.vue     # 游戏根组件
 ├── router/index.js          # uTools 兼容的 hash 模式路由
 ├── utils/
 │   ├── saveManager.js       # 统一存档系统（uTools + iframe）
@@ -61,9 +70,22 @@ src/
 
 ### 配置文件
 
-- `vite.config.js`: 构建配置，端口 5177，路径别名 `@`，HMR 设置
+- `vite.config.js`: 构建配置，端口 5177，路径别名 `@`，HMR 设置，Element Plus 自动导入
 - `public/plugin.json`: uTools 插件清单，定义用于直接启动游戏的功能/命令
 - `jsconfig.json`: `@/` 导入的路径别名
+
+### UI 框架和状态管理
+
+- **Element Plus**: UI 组件库，自动导入组件和图标
+- **Pinia**: 状态管理库，支持持久化存储
+- **vConsole**: 开发调试工具（仅开发环境），使用 `Ctrl+Shift+L` 切换显示
+
+### 开发工具
+
+- **vConsole**: 移动端调试工具
+  - 仅在开发环境加载
+  - 默认隐藏，按 `Ctrl+Shift+L` 切换显示
+  - 支持系统、网络、元素、存储等调试面板
 
 ## 核心系统
 
@@ -80,9 +102,9 @@ src/
 - `{gameId}-get-save-data` → 响应 `{type: "{gameId}-save-data", data: {...}}`
 - `{gameId}-set-save-data` → 写入 localStorage，响应 `{type: "{gameId}-save-data-set", success: true}`
 
-### 游戏配置 (`src/GameList/index.vue:44-175`)
+### 游戏配置 (`src/config/games.js`)
 
-所有游戏都在 `games` 数组中定义，包含以下属性：
+所有游戏配置已迁移到独立的配置文件中，包含以下属性：
 ```javascript
 {
   id: 'game-id',              // 用于存档命名空间和路由
@@ -98,20 +120,48 @@ src/
   players: '单人|多人',
   duration: '每局X分钟',
   isVueComponent: true,       // Vue 游戏为 true，iframe 游戏省略
-  source: '来源'              // 转载游戏标注
+  source: '来源',             // 转载游戏标注
+  githubUrl: 'https://...'    // 游戏源码地址（新增）
 }
 ```
+
+配置文件还提供以下工具函数：
+- `getGameById(id)` - 根据ID获取游戏配置
+- `getGamesByCategory(categoryId)` - 根据分类获取游戏列表
+- `searchGames(query)` - 搜索游戏
 
 ### 路由系统 (`src/router/index.js`)
 
 使用 **hash 模式**（`createWebHashHistory()`）以兼容 uTools。所有路由都使用动态导入进行懒加载。
+
+路由按游戏类型分组（RPG、益智、策略），并支持嵌套路由（用于复杂游戏如文字修仙）。
 
 添加新游戏路由：
 ```javascript
 {
   path: '/newgame',
   name: 'NewGame',
-  component: () => import('../views/NewGameView.vue')
+  component: () => import('../views/NewGameView.vue'),
+  meta: { category: 'puzzle', isVueComponent: true }
+}
+```
+
+**嵌套路由示例**（文字修仙游戏）：
+```javascript
+{
+  path: '/xiuxian',
+  name: 'XiuxianGame',
+  component: () => import('../views/XiuxianGameView.vue'),
+  meta: { category: 'rpg', isVueComponent: true },
+  redirect: '/xiuxian',
+  children: [
+    {
+      path: '',
+      name: 'XiuxianIndex',
+      component: () => import('../xiuxian/views/indexPage.vue')
+    },
+    // 更多子路由...
+  ]
 }
 ```
 
@@ -134,20 +184,48 @@ const isUToolsEnv = typeof window !== 'undefined' && window.utools
 
 ## 添加新游戏
 
-### Vue 组件游戏
+### Vue 组件游戏（简单）
 
 1. 创建 `src/components/NewGame.vue` 实现游戏逻辑
 2. 创建 `src/views/NewGameView.vue` 作为包装器（包含导航、存档控制）
 3. 在 `src/router/index.js` 中添加路由
-4. 在 `src/GameList/index.vue` 的 games 数组中添加游戏配置，设置 `isVueComponent: true`
+4. 在 `src/config/games.js` 的 games 数组中添加游戏配置，设置 `isVueComponent: true`
 5. 在 `public/plugin.json` 中添加功能以支持直接启动（可选）
+
+### Vue 组件游戏（复杂/嵌套路由）
+
+对于需要多个页面和复杂状态管理的游戏（如文字修仙）：
+
+1. 创建游戏目录 `src/gameid/`
+2. 创建游戏主组件 `src/gameid/GameIdGame.vue`
+3. 在 `src/gameid/views/` 中创建各个页面组件
+4. 创建视图包装器 `src/views/GameIdView.vue`，引用游戏主组件
+5. 在 `src/router/index.js` 中添加嵌套路由配置
+6. 在 `src/config/games.js` 中添加游戏配置
+7. 在 `public/plugin.json` 中添加功能以支持直接启动（可选）
+
+示例结构：
+```
+src/
+├── views/
+│   └── GameIdView.vue        # 包装器
+├── gameid/
+│   ├── GameIdGame.vue        # 游戏主组件
+│   ├── views/                # 各个页面
+│   │   ├── indexPage.vue
+│   │   ├── homePage.vue
+│   │   └── ...
+│   ├── components/           # 游戏组件
+│   ├── plugins/             # 游戏插件/模块
+│   └── utils/               # 工具函数
+```
 
 ### iframe 游戏
 
 1. 将游戏文件放在 `public/newgame/` 目录
 2. 创建 `src/views/NewGameView.vue`，使用 iframe 指向 `/newgame/`
 3. 在 `src/router/index.js` 中添加路由
-4. 在 `src/GameList/index.vue` 中添加游戏配置（省略 `isVueComponent`）
+4. 在 `src/config/games.js` 中添加游戏配置（省略 `isVueComponent`）
 5. 创建 `public/newgame/utools-adapter.js` 处理消息传递（存档/加载）
 6. 在 `public/plugin.json` 中添加功能以支持直接启动（可选）
 
@@ -179,6 +257,8 @@ uTools 插件开发流程：
 - **消息传递**: 使用 iframe 的 `postMessage` 时需验证 event.origin
 - **路径导入**: 使用 `@/` 别名导入 src 目录文件
 - **语境**: 使用中文语境编写文档和注释等文字工作
+- **窗口大小**: utools 默认宽高：800px × 544px
+
 
 ## 浏览器 vs uTools 环境
 
@@ -187,3 +267,23 @@ uTools 插件开发流程：
 - **uTools**: 完整的云存档集成、直接启动命令、嵌入式浏览器
 
 在浏览器中测试 iframe 游戏时，存档将使用 localStorage 而非 uTools db。
+
+## 当前游戏列表
+
+### Vue 组件游戏
+- **俄罗斯方块** - 经典消除游戏，使用组合式函数模式
+- **糖果盒子2** - ASCII艺术风格文字RPG
+- **人生重开模拟器** - 模拟另一种人生
+- **文字修仙** - 完整的修仙RPG，支持修炼、打怪、装备、NPC交互等，使用嵌套路由
+
+### iframe 嵌入游戏
+- **六边形俄罗斯方块** - 六边形旋转消除游戏
+- **环形之路** - 极简风格节奏点击游戏
+- **小黑屋** - 极简主义文字冒险游戏
+- **坦克大战** - 经典FC坦克大战
+
+## 游戏分类
+
+- **角色扮演 (RPG)**: 小黑屋、糖果盒子2、人生重开模拟器、文字修仙
+- **益智**: 俄罗斯方块、六边形俄罗斯方块、环形之路
+- **策略**: 坦克大战
