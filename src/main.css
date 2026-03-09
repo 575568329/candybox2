@@ -68,35 +68,7 @@ textarea {
   display: none !important;
 }
 
-/* 修仙游戏 - MessageBox 装备信息弹窗全局样式 */
-.monsterinfo {
-  display: flex !important;
-  justify-content: center !important;
-}
-
-.monsterinfo-box {
-  display: grid !important;
-  grid-template-columns: 1fr 20px 1fr !important;
-  gap: 10px !important;
-}
-
-.monsterinfo-box p {
-  display: contents !important;
-}
-
-.monsterinfo-box .description {
-  text-align: left !important;
-}
-
-.monsterinfo-box .icon {
-  text-align: center !important;
-}
-
-.monsterinfo-box .value {
-  text-align: left !important;
-}
-
 /* 新手礼包弹窗样式 */
 .newbieinfo-box p {
-  margin-bottom: 10px !important;
+  margin-bottom: 10px;
 }

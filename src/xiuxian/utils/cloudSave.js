@@ -18,7 +18,9 @@ export async function saveToUTools() {
     }
 
     const store = useXiuxianStore()
-    const saveData = {
+
+    // 序列化数据，去除响应式代理和循环引用
+    const saveData = JSON.parse(JSON.stringify({
       boss: store.boss,
       player: store.player,
       monster: store.monster,
@@ -27,7 +29,7 @@ export async function saveToUTools() {
       fishingMap: store.fishingMap,
       timestamp: Date.now(),
       updatedAt: Date.now()
-    }
+    }))
 
     // 获取已有存档的 _rev
     let existingDoc = null
