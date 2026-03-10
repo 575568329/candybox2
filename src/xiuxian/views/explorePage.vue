@@ -1,60 +1,64 @@
 <template>
-  <div class="explore">
-    <div class="cultivate" v-if="monster.name">
-      你遇到了
-      <span class="el-tag el-tag--danger" @click="openMonsterInfo" v-text="monster.name" />
-      <div class="storyText">
-        <div class="storyText-box">
-          <el-scrollbar ref="scrollbar" always>
-            <p class="fighting" v-if="isFighting" v-text="`${guashaRounds}回合 / 10回合`" />
-            <p
-              v-for="(item, index) in texts"
-              :key="index"
-              v-html="item"
-              @click="openEquipmentInfo(openEquipItemInfo)"
-            />
-          </el-scrollbar>
-        </div>
-      </div>
-      <div class="actions">
-        <div class="action">
-          <el-button class="item" @click="operate('startFight')" :disabled="isEnd">
-            发起战斗
-            <span class="shortcutKeys">(Q)</span>
-          </el-button>
-        </div>
-        <div class="action">
-          <el-button class="item" @click="operate('harvestPet')" :disabled="isCaptureFailed">
-            收服对方
-            <span class="shortcutKeys">(E)</span>
-          </el-button>
-        </div>
-        <div class="action">
-          <el-button class="item" @click="operate('runAway')" :disabled="isFailedRetreat">
-            立马撤退
-            <span class="shortcutKeys">(R)</span>
-          </el-button>
-        </div>
-        <div class="action">
-          <el-button class="item" @click="operate('explore')" :disabled="player.health <= 0" v-if="isEnd">
-            继续探索
-            <span class="shortcutKeys">(F)</span>
-          </el-button>
-        </div>
-        <div class="action">
-          <el-button class="item" @click="operate('goHome')" v-if="isEnd">
-            回家疗伤
-            <span class="shortcutKeys">(G)</span>
-          </el-button>
-        </div>
+  <div class="explore-page">
+    <!-- 野怪信息卡片 -->
+    <div class="ink-card monster-info" v-if="monster.name">
+      <div class="monster-header">
+        <h2 class="monster-name font-title" @click="openMonsterInfo">{{ monster.name }}</h2>
+        <span class="monster-tag seal">妖</span>
       </div>
     </div>
-    <div class="cultivate error" v-else>
-      <el-result icon="error" title="缺少对战信息" sub-title="请返回地图重新探索">
-        <template #extra>
-          <el-button :type="!player.dark ? 'primary' : ''" @click="router.push('/xiuxian/map')">返回地图</el-button>
-        </template>
-      </el-result>
+
+    <!-- 战斗日志 -->
+    <div class="ink-card battle-log" v-if="monster.name">
+      <div class="battle-header">
+        <h3 class="font-title">战况记录</h3>
+        <span v-if="isFighting" class="round-counter font-number">{{ guashaRounds }} 回合 / 10 回合</span>
+      </div>
+      <div class="log-content font-body">
+        <el-scrollbar ref="scrollbar" always>
+          <p
+            v-for="(item, index) in texts"
+            :key="index"
+            class="log-entry"
+            v-html="item"
+            @click="openEquipmentInfo(openEquipItemInfo)"
+          />
+        </el-scrollbar>
+      </div>
+    </div>
+
+    <!-- 战斗操作 -->
+    <div class="actions-section" v-if="monster.name">
+      <InkButton type="primary" @click="operate('startFight')" :disabled="isEnd" class="action-btn">
+        发起战斗
+        <span class="shortcutKeys">(Q)</span>
+      </InkButton>
+      <InkButton type="success" @click="operate('harvestPet')" :disabled="isCaptureFailed" class="action-btn">
+        收服对方
+        <span class="shortcutKeys">(E)</span>
+      </InkButton>
+      <InkButton type="warning" @click="operate('runAway')" :disabled="isFailedRetreat" class="action-btn">
+        立马撤退
+        <span class="shortcutKeys">(R)</span>
+      </InkButton>
+      <InkButton type="secondary" @click="operate('explore')" :disabled="player.health <= 0" v-if="isEnd" class="action-btn">
+        继续探索
+        <span class="shortcutKeys">(F)</span>
+      </InkButton>
+      <InkButton type="secondary" @click="operate('goHome')" v-if="isEnd" class="action-btn">
+        回家疗伤
+        <span class="shortcutKeys">(G)</span>
+      </InkButton>
+    </div>
+
+    <!-- 错误提示 -->
+    <div class="ink-card error-card" v-else>
+      <div class="error-content">
+        <div class="error-icon">?</div>
+        <h3 class="font-title">缺少对战信息</h3>
+        <p class="font-body">请返回地图重新探索</p>
+        <InkButton type="primary" @click="router.push('/xiuxian/map')">返回地图</InkButton>
+      </div>
     </div>
   </div>
 </template>
@@ -77,6 +81,7 @@
     smoothScrollToBottom
   } from '../plugins/game'
   import { ElMessageBox } from 'element-plus'
+  import InkButton from '../components/InkButton.vue'
 
   const store = useMainStore()
   const router = useRouter()
@@ -514,58 +519,201 @@
 </script>
 
 <style scoped>
-  .actions .action {
-    width: calc(33.333% - 10px);
-    margin: 5px;
+.explore-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+/* 野怪信息卡片 */
+.monster-info {
+  background: linear-gradient(135deg, rgba(95, 141, 110, 0.1) 0%, var(--color-paper-dark) 100%);
+  border-left: 4px solid var(--color-jade);
+}
+
+.monster-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.monster-name {
+  font-size: 22px;
+  color: var(--color-jade);
+  margin: 0;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.monster-name:hover {
+  text-shadow: 0 0 8px rgba(95, 141, 110, 0.3);
+}
+
+.monster-tag {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 2px solid var(--color-jade);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-title);
+  font-size: 14px;
+  color: var(--color-jade);
+  background-color: rgba(95, 141, 110, 0.1);
+}
+
+/* 战斗日志 */
+.battle-log {
+  min-height: 120px;
+  max-height: 180px;
+  overflow: hidden;
+}
+
+.battle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-ink-lighter);
+}
+
+.battle-header h3 {
+  font-size: 16px;
+  color: var(--color-ink);
+  margin: 0;
+  letter-spacing: 2px;
+}
+
+.round-counter {
+  font-size: 12px;
+  color: var(--color-jade);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: rgba(95, 141, 110, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.log-content {
+  line-height: 1.6;
+  color: var(--color-ink-light);
+}
+
+.log-entry {
+  margin: var(--spacing-xs) 0;
+  padding-left: var(--spacing-md);
+  border-left: 2px solid var(--color-ink-lighter);
+  transition: all var(--transition-fast);
+}
+
+.log-entry:hover {
+  border-left-color: var(--color-jade);
+  padding-left: var(--spacing-lg);
+}
+
+/* 操作按钮区 */
+.actions-section {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.action-btn {
+  position: relative;
+}
+
+.shortcutKeys {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 10px;
+  opacity: 0.6;
+  font-family: var(--font-number);
+}
+
+/* 错误提示卡片 */
+.error-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 250px;
+  text-align: center;
+}
+
+.error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.error-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: rgba(200, 48, 44, 0.1);
+  border: 2px solid var(--color-cinnabar);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-title);
+  font-size: 32px;
+  color: var(--color-cinnabar);
+}
+
+.error-content h3 {
+  font-size: 18px;
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.error-content p {
+  font-size: 14px;
+  color: var(--color-ink-light);
+  margin: 0;
+}
+
+/* uTools 窗口优化 */
+@media only screen and (max-width: 800px) and (max-height: 500px) {
+  .explore-page {
+    padding: var(--spacing-sm);
+    gap: var(--spacing-sm);
   }
 
+  .monster-name {
+    font-size: 18px;
+  }
+
+  .battle-log {
+    min-height: 80px;
+    max-height: 120px;
+  }
+
+  .battle-header h3 {
+    font-size: 14px;
+  }
+
+  .round-counter {
+    font-size: 10px;
+  }
+
+  .actions-section {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-xs);
+  }
+
+  .error-card {
+    min-height: 180px;
+  }
+
+  .error-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+  }
+}
+
+@media only screen and (max-width: 768px) {
   .shortcutKeys {
-    color: var(--el-text-color-secondary);  /* 提高对比度 */
-    margin-left: 2px;
-    opacity: 0.7;
+    display: none;
   }
-
-  .cultivate.error {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 300px;  /* 进一步减小至300px，适应450px窗口 */
-  }
-
-  /* uTools 窗口专用优化 - 极限压缩 */
-  @media only screen and (max-width: 800px) and (max-height: 500px) {
-    .cultivate.error {
-      min-height: 200px;
-    }
-
-    .actions .action {
-      width: calc(50% - 4px);
-      margin: 2px;
-      font-size: 12px;
-    }
-
-    .actions {
-      gap: 3px;
-    }
-
-    .shortcutKeys {
-      font-size: 9px;
-      display: block;
-    }
-
-    .action :deep(.el-button) {
-      padding: 5px 8px;
-      height: 32px;
-    }
-
-    .storyText-box {
-      max-height: 100px;
-    }
-  }
-
-  @media only screen and (max-width: 768px) {
-    .shortcutKeys {
-      display: none;
-    }
-  }
+}
 </style>

@@ -1,22 +1,50 @@
 <template>
-  <div class="cultivate">
-    <div class="boss">
-      <div class="boss-box">
-        <span class="el-tag el-tag--warning" @click="openBossInfo">{{ store.boss.name }}</span>
-        <el-alert class="desc" :title="store.boss.desc" :closable="false" type="error" />
+  <div class="boss-page">
+    <!-- BOSS 信息卡片 -->
+    <div class="ink-card boss-info">
+      <h2 class="boss-name font-title" @click="openBossInfo">{{ store.boss.name }}</h2>
+      <p class="boss-desc font-body">{{ store.boss.desc }}</p>
+      <div class="boss-stats" v-if="store.boss.health > 0">
+        <div class="stat-item">
+          <span class="stat-label">气血</span>
+          <div class="ink-progress">
+            <div class="ink-progress-bar" :style="{ width: `${(store.boss.health / store.boss.maxhealth) * 100}%` }"></div>
+          </div>
+          <span class="stat-value font-number">{{ formatNumberToChineseUnit(store.boss.health) }} / {{ formatNumberToChineseUnit(store.boss.maxhealth) }}</span>
+        </div>
+      </div>
+      <div class="boss-seal" v-else>
+        <span class="seal">未刷新</span>
       </div>
     </div>
-    <div class="storyText">
-      <div class="storyText-box">
+
+    <!-- 战斗日志 -->
+    <div class="ink-card battle-log">
+      <div class="battle-header">
+        <h3 class="font-title">战况记录</h3>
+        <span v-if="isFighting" class="round-counter font-number">{{ guashaRounds }} 回合 / 50 回合</span>
+      </div>
+      <div class="log-content font-body">
         <el-scrollbar ref="scrollbar" always>
-          <p class="fighting" v-if="isFighting" v-text="`${guashaRounds}回合 / 50回合`" />
-          <p v-for="(item, index) in texts" :key="index" v-html="item" @click="openEquipmentInfo(equipmentInfo)" />
+          <p
+            v-for="(item, index) in texts"
+            :key="index"
+            class="log-entry"
+            v-html="item"
+            @click="openEquipmentInfo(equipmentInfo)"
+          />
         </el-scrollbar>
       </div>
     </div>
-    <div class="actions">
-      <el-button @click="startFightBoss" :disabled="isEnd">发起战斗</el-button>
-      <el-button @click="router.push('/xiuxian/home')">回家疗伤</el-button>
+
+    <!-- 战斗操作 -->
+    <div class="actions-section">
+      <InkButton type="primary" @click="startFightBoss" :disabled="isEnd">
+        发起战斗
+      </InkButton>
+      <InkButton type="secondary" @click="router.push('/xiuxian/home')">
+        回家疗伤
+      </InkButton>
     </div>
   </div>
 </template>
@@ -28,6 +56,7 @@
   import { useMainStore } from '../plugins/store'
   import { ElMessageBox } from 'element-plus'
   import { maxLv, levelNames, formatNumberToChineseUnit, genre, levels, smoothScrollToBottom } from '../plugins/game'
+  import InkButton from '../components/InkButton.vue'
 
   const router = useRouter()
   const store = useMainStore()
@@ -288,7 +317,158 @@
 </script>
 
 <style scoped>
-  .boss-box .desc {
-    margin: 10px 0;
+.boss-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+/* BOSS 信息卡片 */
+.boss-info {
+  background: linear-gradient(135deg, rgba(200, 48, 44, 0.05) 0%, var(--color-paper-dark) 100%);
+  border-left: 4px solid var(--color-cinnabar);
+}
+
+.boss-name {
+  font-size: 24px;
+  color: var(--color-cinnabar);
+  text-align: center;
+  margin: 0 0 var(--spacing-sm) 0;
+  letter-spacing: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.boss-name:hover {
+  text-shadow: 0 0 8px rgba(200, 48, 44, 0.3);
+}
+
+.boss-desc {
+  color: var(--color-ink-light);
+  text-align: center;
+  line-height: 1.6;
+  margin: var(--spacing-sm) 0;
+}
+
+.boss-stats {
+  margin-top: var(--spacing-md);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background-color: var(--color-paper);
+  border-radius: var(--radius-sm);
+}
+
+.stat-label {
+  font-family: var(--font-title);
+  font-size: 14px;
+  color: var(--color-ink-lighter);
+  min-width: 40px;
+}
+
+.ink-progress {
+  flex: 1;
+  height: 10px;
+  background-color: var(--color-paper-dark);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.stat-value {
+  font-size: 12px;
+  color: var(--color-ink-light);
+  min-width: 80px;
+  text-align: right;
+}
+
+.boss-seal {
+  text-align: center;
+  padding: var(--spacing-md);
+}
+
+/* 战斗日志 */
+.battle-log {
+  min-height: 150px;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.battle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-ink-lighter);
+}
+
+.battle-header h3 {
+  font-size: 18px;
+  color: var(--color-ink);
+  margin: 0;
+  letter-spacing: 2px;
+}
+
+.round-counter {
+  font-size: 14px;
+  color: var(--color-cinnabar);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: rgba(200, 48, 44, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.log-content {
+  line-height: 1.6;
+  color: var(--color-ink-light);
+}
+
+.log-entry {
+  margin: var(--spacing-xs) 0;
+  padding-left: var(--spacing-md);
+  border-left: 2px solid var(--color-ink-lighter);
+  transition: all var(--transition-fast);
+}
+
+.log-entry:hover {
+  border-left-color: var(--color-cinnabar);
+  padding-left: var(--spacing-lg);
+}
+
+/* 操作按钮区 */
+.actions-section {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* uTools 窗口优化 */
+@media only screen and (max-width: 800px) and (max-height: 500px) {
+  .boss-page {
+    padding: var(--spacing-sm);
+    gap: var(--spacing-sm);
   }
+
+  .boss-name {
+    font-size: 20px;
+  }
+
+  .battle-log {
+    min-height: 100px;
+    max-height: 150px;
+  }
+
+  .battle-header h3 {
+    font-size: 16px;
+  }
+
+  .round-counter {
+    font-size: 12px;
+  }
+}
 </style>
