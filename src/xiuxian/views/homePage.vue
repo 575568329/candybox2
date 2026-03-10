@@ -2823,47 +2823,6 @@
     white-space: nowrap; /* 按钮文字不换行 */
   }
 
-  /* 滚动提示 - 左侧渐变遮罩（提示可以左滑） */
-  .actions-bar::before {
-    content: '«';
-    position: fixed; /* 固定在视口，不随滚动移动 */
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 48px; /* 固定高度，等于操作栏高度 */
-    color: var(--color-cinnabar);
-    font-size: 24px;
-    font-weight: bold;
-    background: linear-gradient(to right, var(--color-paper) 0%, var(--color-paper) 60%, transparent 100%);
-    pointer-events: none;
-    opacity: 0.8;
-    z-index: 1000; /* 更高的 z-index，确保在所有内容之上 */
-  }
-
-  /* 滚动提示 - 右侧渐变遮罩（提示可以右滑） */
-  .actions-bar::after {
-    content: '»';
-    position: fixed; /* 固定在视口，不随滚动移动 */
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 48px; /* 固定高度，等于操作栏高度 */
-    color: var(--color-cinnabar);
-    font-size: 24px;
-    font-weight: bold;
-    background: linear-gradient(to left, var(--color-paper) 0%, var(--color-paper) 60%, transparent 100%);
-    pointer-events: none;
-    opacity: 0.8;
-    z-index: 1000; /* 更高的 z-index，确保在所有内容之上 */
-  }
 
   /* 按钮区域 */
   .actions-section {
@@ -3105,13 +3064,6 @@
       min-width: 90px;
       font-size: 13px;
       padding: var(--spacing-xs) var(--spacing-sm);
-    }
-
-    .actions-bar::before,
-    .actions-bar::after {
-      width: 28px;
-      height: 40px;
-      font-size: 20px;
     }
 
     .attribute-box {
