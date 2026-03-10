@@ -2838,9 +2838,10 @@
     color: var(--color-cinnabar);
     font-size: 24px;
     font-weight: bold;
-    background: linear-gradient(to right, var(--color-paper), transparent);
+    background: linear-gradient(to right, var(--color-paper) 0%, var(--color-paper) 60%, transparent 100%);
     pointer-events: none;
     opacity: 0.8;
+    z-index: 100; /* 确保在按钮之上 */
   }
 
   /* 滚动提示 - 右侧渐变遮罩（提示可以右滑） */
@@ -2858,9 +2859,10 @@
     color: var(--color-cinnabar);
     font-size: 24px;
     font-weight: bold;
-    background: linear-gradient(to left, var(--color-paper), transparent);
+    background: linear-gradient(to left, var(--color-paper) 0%, var(--color-paper) 60%, transparent 100%);
     pointer-events: none;
     opacity: 0.8;
+    z-index: 100; /* 确保在按钮之上 */
   }
 
   /* 按钮区域 */
@@ -2904,13 +2906,12 @@
     border-bottom-color: var(--color-ink-lighter);
   }
 
-  .dark .actions-bar::before,
-  .dark .actions-bar::after {
-    background: linear-gradient(to right, #1a1a1a, transparent);
+  .dark .actions-bar::before {
+    background: linear-gradient(to right, #1a1a1a 0%, #1a1a1a 60%, transparent 100%);
   }
 
   .dark .actions-bar::after {
-    background: linear-gradient(to left, #1a1a1a, transparent);
+    background: linear-gradient(to left, #1a1a1a 0%, #1a1a1a 60%, transparent 100%);
   }
 
   .dark .actions-bar::-webkit-scrollbar-track {
