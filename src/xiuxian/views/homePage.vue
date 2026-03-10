@@ -986,6 +986,17 @@
           <el-button type="danger" class="dialog-footer-button">导入脚本</el-button>
         </el-upload>
         <el-button type="warning" class="dialog-footer-button" @click="deleteScriptData">删除脚本</el-button>
+        <el-divider>显示设置</el-divider>
+        <div class="dark-mode-toggle">
+          <span class="toggle-label">{{ player.dark ? '🌙 暗色模式' : '☀️ 浅色模式' }}</span>
+          <el-switch
+            v-model="player.dark"
+            size="large"
+            @change="handleDarkModeChange"
+            active-text="暗色"
+            inactive-text="浅色"
+          />
+        </div>
         <el-divider>其他相关</el-divider>
         <el-button class="dialog-footer-button" @click="sellingEquipmentBox">批量处理</el-button>
         <el-button type="primary" class="dialog-footer-button" @click="copyContent('qq')">官方群聊</el-button>
@@ -2616,6 +2627,18 @@
     }
     return typeMap[text] || 'secondary'
   }
+
+  // 暗色模式切换处理
+  const handleDarkModeChange = (val) => {
+    const gameContainer = document.querySelector('.game-container')
+    if (gameContainer) {
+      gameContainer.classList.toggle('dark', val)
+    }
+    gameNotifys({
+      title: '显示模式',
+      message: val ? '已切换到暗色模式' : '已切换到浅色模式'
+    })
+  }
 </script>
 
 <style scoped>
@@ -2848,6 +2871,48 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
+    gap: var(--spacing-md);
+  }
+
+  /* 暗色模式切换样式 */
+  .dark-mode-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--color-paper-dark);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .dark-mode-toggle .toggle-label {
+    font-family: var(--font-title);
+    font-size: 15px;
+    font-weight: bold;
+    color: var(--color-ink);
+  }
+
+  /* 暗色模式下的操作栏样式 */
+  .dark .actions-bar {
+    background-color: #1a1a1a;
+    border-bottom-color: var(--color-ink-lighter);
+  }
+
+  .dark .actions-bar::before,
+  .dark .actions-bar::after {
+    background: linear-gradient(to right, #1a1a1a, transparent);
+  }
+
+  .dark .actions-bar::after {
+    background: linear-gradient(to left, #1a1a1a, transparent);
+  }
+
+  .dark .actions-bar::-webkit-scrollbar-track {
+    background: #252525;
+  }
+
+  .dark .actions-bar::-webkit-scrollbar-thumb {
+    background: var(--color-cinnabar);
   }
 
   .dialog-footer .el-button {
