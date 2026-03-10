@@ -72,8 +72,10 @@ const handleClick = (e) => {
 }
 
 .ink-button-secondary:hover:not(.is-disabled) {
-  background-color: var(--color-paper-dark);
+  background-color: #d4d0c7; /* 深一点的米色 */
+  color: var(--color-ink);
   transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(44, 44, 44, 0.15);
 }
 
 .ink-button-success {
@@ -81,9 +83,27 @@ const handleClick = (e) => {
   color: white;
 }
 
+.ink-button-success:hover:not(.is-disabled) {
+  background-color: #4a8a6f; /* 深一点的玉色 */
+  color: white;
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 8px rgba(95, 141, 110, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
 .ink-button-warning {
   background-color: var(--color-gold);
   color: white;
+}
+
+.ink-button-warning:hover:not(.is-disabled) {
+  background-color: #9a7509; /* 深一点的古铜金 */
+  color: white;
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 8px rgba(184, 134, 11, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .ink-button.is-disabled {
