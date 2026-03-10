@@ -1,30 +1,46 @@
 <template>
-  <div class="cultivate">
-    <div class="cultivation-info">
-      <div class="realm-display">
-        当前境界：
-        <span class="realm-text" v-text="`${levelNames(player.level)}(${player.reincarnation || 0}转)`" />
+  <div class="cultivate-page">
+    <!-- 修炼信息面板 -->
+    <AttributePanel title="修炼法诀">
+      <div class="cultivation-content">
+        <div class="realm-display font-title">
+          <span class="realm-label">当前境界</span>
+          <span class="realm-text">{{ levelNames(player.level) }}({{ player.reincarnation || 0 }}转)</span>
+        </div>
       </div>
-      <el-progress
-        :percentage="cultivationPercentage"
-        :format="percentage => `${percentage.toFixed(2)}%`"
-        text-inside
-        :stroke-width="20"
-        status="success"
-        class="custom-progress"
-      />
+    </AttributePanel>
+
+    <!-- 修炼进度 -->
+    <div class="ink-card progress-section">
+      <h3 class="font-title">修为进度</h3>
+      <div class="ink-progress">
+        <div
+          class="ink-progress-bar"
+          :style="{ width: `${cultivationPercentage}%` }"
+        ></div>
+      </div>
+      <div class="progress-text font-number">
+        {{ player.cultivation }} / {{ player.maxCultivation }}
+        <span class="progress-percent">({{ cultivationPercentage.toFixed(2) }}%)</span>
+      </div>
     </div>
-    <div class="storyText">
-      <div class="storyText-box">
+
+    <!-- 修炼日志 -->
+    <div class="ink-card log-section">
+      <h3 class="font-title">修炼日志</h3>
+      <div class="log-content font-body">
         <el-scrollbar ref="scrollbar" always>
           <p v-for="(item, index) in texts" :key="index" v-html="item" />
         </el-scrollbar>
       </div>
     </div>
-    <div class="actions">
-      <div class="action" v-for="(item, index) in buttonsFor" :key="index">
-        <el-button class="item" @click="item.click" :disabled="item.disabled">{{ item.text }}</el-button>
-      </div>
+
+    <!-- 操作按钮 -->
+    <div class="actions-section">
+      <InkButton type="primary" @click="startCultivate" :disabled="!isStart">开始修炼</InkButton>
+      <InkButton type="secondary" @click="stopCultivate" :disabled="!isStop">停止修炼</InkButton>
+      <InkButton type="warning" @click="reincarnationBreakthrough">转生突破</InkButton>
+      <InkButton type="secondary" @click="() => router.push('/xiuxian/home')">返回家里</InkButton>
     </div>
   </div>
 </template>
@@ -36,6 +52,8 @@
   import equip from '../plugins/equip'
   import { maxLv, smoothScrollToBottom, levelNames, gameNotifys } from '../plugins/game'
   import { ElMessageBox } from 'element-plus'
+  import AttributePanel from '../components/AttributePanel.vue'
+  import InkButton from '../components/InkButton.vue'
 
   const store = useMainStore()
   const router = useRouter()
@@ -235,130 +253,191 @@
 </script>
 
 <style scoped>
-  .cultivate {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    max-width: 600px;
-    margin: 0 auto;
+/* ==================== 水墨书院风格修炼页样式 ==================== */
+
+.cultivate-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 修炼内容区 */
+.cultivation-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.realm-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm);
+}
+
+.realm-label {
+  color: var(--color-ink-lighter);
+  font-size: 14px;
+}
+
+.realm-text {
+  color: var(--color-cinnabar);
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* 进度区域 */
+.progress-section {
+  text-align: center;
+  padding: var(--spacing-lg);
+}
+
+.progress-section h3 {
+  margin-bottom: var(--spacing-md);
+  color: var(--color-ink);
+  font-size: 18px;
+}
+
+.ink-progress {
+  margin: var(--spacing-md) 0;
+  height: 8px;
+  background-color: var(--color-paper);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+}
+
+.ink-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-ink), var(--color-cinnabar));
+  border-radius: var(--radius-sm);
+  transition: width var(--transition-slow);
+}
+
+.progress-text {
+  margin-top: var(--spacing-sm);
+  color: var(--color-ink);
+  font-size: 16px;
+}
+
+.progress-percent {
+  color: var(--color-ink-light);
+  font-size: 14px;
+  margin-left: var(--spacing-xs);
+}
+
+/* 日志区域 */
+.log-section {
+  padding: var(--spacing-md);
+}
+
+.log-section h3 {
+  margin-bottom: var(--spacing-md);
+  color: var(--color-ink);
+  font-size: 18px;
+  text-align: center;
+}
+
+.log-content {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+  background-color: var(--color-paper);
+  border-radius: var(--radius-sm);
+  line-height: 1.8;
+  min-height: 80px;
+}
+
+.log-content p {
+  margin: var(--spacing-xs) 0;
+  padding-left: var(--spacing-md);
+  border-left: 2px solid var(--color-ink-lighter);
+}
+
+/* 按钮区域 */
+.actions-section {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: var(--spacing-md) 0;
+}
+
+/* 事件文本高亮 */
+.event-text {
+  color: var(--color-gold);
+  font-weight: bold;
+}
+
+/* 响应式适配 */
+@media (max-width: 600px) {
+  .cultivate-page {
+    padding: var(--spacing-sm);
+    gap: var(--spacing-sm);
   }
 
-  .cultivation-info {
-    width: 100%;
-    margin-bottom: 15px;
-  }
-
-  .custom-progress {
-    width: 100%;
+  .actions-section {
+    gap: var(--spacing-xs);
   }
 
   .realm-display {
-    margin-bottom: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+}
+
+/* uTools 小窗口优化 */
+@media only screen and (max-width: 800px) and (max-height: 500px) {
+  .cultivate-page {
+    max-height: 320px;
+    overflow-y: auto;
+    padding: var(--spacing-xs);
+    gap: var(--spacing-xs);
+  }
+
+  .progress-section,
+  .log-section {
+    padding: var(--spacing-sm);
+  }
+
+  .progress-section h3,
+  .log-section h3 {
     font-size: 16px;
-    text-align: center;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .log-content {
+    max-height: 120px;
+    padding: var(--spacing-xs);
   }
 
   .realm-text {
-    color: var(--el-color-primary);
-    font-weight: bold;
+    font-size: 16px;
   }
 
-  .storyText {
-    width: 100%;
-    flex: 1;
-    overflow: hidden;
+  .ink-progress {
+    height: 6px;
+    margin: var(--spacing-xs) 0;
   }
 
-  .storyText-box {
-    max-height: 200px;  /* 从 300px 减至 200px，适应小窗口 */
-    overflow-y: auto;
-    padding: 10px;
-    border: 1px solid #dcdfe6;
-    border-radius: 4px;
-    margin-bottom: 15px;
-    width: 100%;
-    box-sizing: border-box;
+  .progress-text {
+    font-size: 14px;
+  }
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .actions-section {
+    flex-direction: column;
   }
 
-  .actions {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-  }
-
-  .action {
-    width: calc(25% - 6px);
-  }
-
-  .item {
+  .actions-section .ink-button {
     width: 100%;
   }
-
-  .event-text {
-    color: #e6a23c;
-    font-weight: bold;
-  }
-
-  /* uTools 窗口专用优化 - 极限压缩 */
-  @media only screen and (max-width: 800px) and (max-height: 500px) {
-    .cultivate {
-      max-height: 320px;
-      overflow: hidden;
-    }
-
-    .cultivation-info {
-      margin-bottom: 6px;
-    }
-
-    .realm-display {
-      font-size: 13px;
-      margin-bottom: 4px;
-    }
-
-    /* 压缩进度条 */
-    .custom-progress {
-      margin-bottom: 3px;
-    }
-
-    .custom-progress :deep(.el-progress__text) {
-      font-size: 11px !important;
-    }
-
-    .custom-progress :deep(.el-progress-bar__outer) {
-      height: 14px !important;
-    }
-
-    .storyText-box {
-      max-height: 120px;
-      margin-bottom: 6px;
-      padding: 6px;
-    }
-
-    .storyText-box :deep(.el-scrollbar__wrap) {
-      max-height: 120px;
-    }
-
-    .actions {
-      gap: 3px;
-    }
-
-    .action {
-      width: calc(50% - 1.5px);
-    }
-
-    .action :deep(.el-button) {
-      padding: 4px 8px;
-      font-size: 12px;
-      height: 32px;
-    }
-  }
-
-  @media (max-width: 768px) {
-    .action {
-      width: calc(50% - 10px);
-    }
-  }
+}
 </style>
