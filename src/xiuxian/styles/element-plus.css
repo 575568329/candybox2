@@ -82,16 +82,16 @@
   border: 2px solid var(--color-ink) !important;
   color: var(--color-ink) !important;
   border-radius: var(--radius-sm) !important;
-  padding: 4px 12px !important;
+  padding: 6px 12px !important;
   font-size: 13px !important;
   font-weight: bold !important;
   font-family: var(--font-body) !important;
   transition: all var(--transition-fast) !important;
   display: inline-flex !important;
   align-items: center !important;
-  justify-content: center !important;
   gap: 4px !important;
   line-height: 1 !important;
+  min-height: auto !important;
 }
 
 .el-tag:hover {
@@ -144,14 +144,17 @@
 }
 
 /* 标签内的所有子元素对齐 */
-.el-tag .el-icon,
-.el-tag .el-tag__content,
-.el-tag .el-tag__close {
+.el-tag > *,
+.el-tag .el-tag__content > * {
   display: inline-flex !important;
   align-items: center !important;
-  justify-content: center !important;
-  vertical-align: middle !important;
   line-height: 1 !important;
+}
+
+.el-tag .el-icon,
+.el-tag .el-tag__close {
+  justify-content: center !important;
+  flex-shrink: 0 !important;
 }
 
 .el-tag .el-icon svg,
@@ -166,13 +169,13 @@
   display: inline-flex !important;
   align-items: center !important;
   gap: 4px !important;
+  flex: 1 1 auto !important;
 }
 
 /* 标签内文本对齐 */
 .el-tag span,
 .el-tag text {
-  display: inline !important;
-  vertical-align: middle !important;
+  display: inline-block !important;
   line-height: 1 !important;
 }
 
