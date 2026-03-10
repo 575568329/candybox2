@@ -405,6 +405,9 @@ onUnmounted(() => {
 /* 引入动画样式 */
 @import './styles/animations.css';
 
+/* 引入 Element Plus 样式覆盖 */
+@import './styles/element-plus.css';
+
 /* 全局样式 - 仅在修仙游戏组件内生效 */
 .xiuxian-game-wrapper {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
