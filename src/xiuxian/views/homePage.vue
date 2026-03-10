@@ -1,5 +1,18 @@
 <template>
   <div class="home-page">
+    <!-- 操作按钮栏 - 水平平铺 -->
+    <div class="actions-bar">
+      <InkButton
+        v-for="(action, index) in actions"
+        :key="index"
+        :type="getButtonType(action.text)"
+        @click="action.handler"
+      >
+        {{ action.text }}
+      </InkButton>
+      <InkButton type="secondary" @click="show = true">游戏设置</InkButton>
+    </div>
+
     <div class="home-page-content">
       <!-- 故事区 - 水墨卡片 -->
       <div class="ink-card story-section">
@@ -395,16 +408,6 @@
               </el-tabs>
             </el-tab-pane>
           </el-tabs>
-        </div>
-      </div>
-      <div class="actions">
-        <div class="action" v-for="(action, index) in actions" :key="index">
-          <el-button class="item" :type="action.type ? action.type : ''" @click="action.handler">
-            {{ action.text }}
-          </el-button>
-        </div>
-        <div class="action">
-          <el-button class="item" @click="show = true">游戏设置</el-button>
         </div>
       </div>
     </div>
@@ -1114,6 +1117,8 @@
   import tag from '../components/tag.vue'
   // 属性面板组件
   import AttributePanel from '../components/AttributePanel.vue'
+  // 水墨按钮组件
+  import InkButton from '../components/InkButton.vue'
   // 商店
   import shop from '../plugins/shop'
   // 装备
@@ -2584,6 +2589,19 @@
       dangerouslyUseHTMLString: true
     }).catch(() => {})
   }
+
+  // 按钮类型映射 - 根据按钮文字返回合适的类型
+  const getButtonType = (text) => {
+    const typeMap = {
+      '开始修炼': 'primary',
+      '探索秘境': 'secondary',
+      '图鉴与成就': 'secondary',
+      '挑战无尽塔': 'warning',
+      '世界BOSS': 'primary',
+      '休闲娱乐': 'secondary'
+    }
+    return typeMap[text] || 'secondary'
+  }
 </script>
 
 <style scoped>
@@ -2709,6 +2727,23 @@
 
   .inventory-item {
     margin: var(--spacing-xs);
+  }
+
+  /* 顶部操作按钮栏 - 水平平铺 */
+  .actions-bar {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: var(--spacing-md) 0;
+    order: -1; /* 确保在内容之前显示 */
+  }
+
+  .actions-bar .ink-button {
+    flex: 0 0 auto;
+    min-width: 100px;
+    font-size: 14px;
+    padding: var(--spacing-sm) var(--spacing-md);
   }
 
   /* 按钮区域 */
@@ -2901,6 +2936,16 @@
 
   /* 响应式适配 */
   @media (max-width: 600px) {
+    .actions-bar {
+      gap: var(--spacing-xs);
+    }
+
+    .actions-bar .ink-button {
+      min-width: 80px;
+      font-size: 13px;
+      padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
     .attribute-box {
       grid-template-columns: 1fr;
     }
