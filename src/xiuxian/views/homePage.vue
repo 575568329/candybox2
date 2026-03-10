@@ -4,8 +4,9 @@
       <div class="story">
         <p v-html="storyText" />
       </div>
-      <div class="attributes">
-        <div class="attribute-box">
+      <AttributePanel title="修仙者信息">
+        <div class="attributes">
+          <div class="attribute-box">
           <div class="tag attribute" @click="editUserName">
             名字: {{ player.name }}
             <el-text v-if="player.currentTitle" type="danger">[{{ player.currentTitle }}]</el-text>
@@ -81,6 +82,7 @@
           </div>
         </div>
       </div>
+      </AttributePanel>
       <div class="equip-box">
         <div class="tag equip-item">
           <span class="equip">
@@ -1108,6 +1110,8 @@
   import { ref, computed, watch, onMounted } from 'vue'
   // 标签组件
   import tag from '../components/tag.vue'
+  // 属性面板组件
+  import AttributePanel from '../components/AttributePanel.vue'
   // 商店
   import shop from '../plugins/shop'
   // 装备
