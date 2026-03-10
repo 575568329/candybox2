@@ -326,3 +326,162 @@
   border-top: 1px solid var(--color-ink-lighter) !important;
   margin: 8px 0 !important;
 }
+
+/* ==================== 深色模式适配 ==================== */
+
+/* 抽屉深色模式 */
+.dark .el-drawer {
+  background-color: #1a1a1a !important;
+  border-left-color: var(--color-ink-lighter) !important;
+}
+
+.dark .el-drawer__body {
+  background-color: #1a1a1a !important;
+  color: var(--color-ink) !important;
+}
+
+/* 标签深色模式 */
+.dark .el-tag {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--color-ink-lighter) !important;
+  color: var(--color-ink) !important;
+}
+
+.dark .el-tag:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .el-tag--success {
+  background-color: rgba(95, 141, 110, 0.2) !important;
+  border-color: var(--color-jade) !important;
+  color: var(--color-jade) !important;
+}
+
+.dark .el-tag--warning {
+  background-color: rgba(184, 134, 11, 0.2) !important;
+  border-color: var(--color-gold) !important;
+  color: var(--color-gold) !important;
+}
+
+.dark .el-tag--danger {
+  background-color: rgba(200, 48, 44, 0.2) !important;
+  border-color: var(--color-cinnabar) !important;
+  color: var(--color-cinnabar) !important;
+}
+
+.dark .el-tag--info {
+  background-color: rgba(232, 228, 217, 0.15) !important;
+  border-color: var(--color-ink-light) !important;
+  color: var(--color-ink-light) !important;
+}
+
+.dark .el-tag__close:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* 对话框深色模式 */
+.dark .el-dialog {
+  background-color: #1a1a1a !important;
+  border-color: var(--color-ink-lighter) !important;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .el-dialog__header {
+  background: linear-gradient(135deg, #3d2914 0%, #4a3320 100%) !important;
+  border-bottom-color: var(--color-ink-lighter) !important;
+}
+
+.dark .el-dialog__title {
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .el-dialog__body {
+  background-color: #1a1a1a !important;
+  color: var(--color-ink) !important;
+}
+
+.dark .el-dialog__footer {
+  background-color: #252525 !important;
+  border-top-color: var(--color-ink-lighter) !important;
+}
+
+/* 消息框深色模式 */
+.dark .el-message-box {
+  background-color: #1a1a1a !important;
+  border-color: var(--color-ink-lighter) !important;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .el-message-box__header {
+  background: linear-gradient(135deg, #3d2914 0%, #4a3320 100%) !important;
+  border-bottom-color: var(--color-ink-lighter) !important;
+}
+
+.dark .el-message-box__title {
+  color: var(--color-gold) !important;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .el-message-box__content {
+  background-color: #1a1a1a !important;
+  color: var(--color-ink) !important;
+}
+
+/* Tooltip 深色模式 */
+.dark .el-tooltip__popper {
+  background-color: rgba(26, 26, 26, 0.95) !important;
+  border-color: var(--color-ink-lighter) !important;
+}
+
+.dark .el-tooltip__popper .el-tooltip__inner {
+  color: var(--color-ink) !important;
+}
+
+/* Popover 深色模式 */
+.dark .el-popover {
+  background-color: #252525 !important;
+  border-color: var(--color-ink-lighter) !important;
+  color: var(--color-ink) !important;
+}
+
+.dark .el-popper__arrow::before {
+  background-color: #252525 !important;
+  border-color: var(--color-ink-lighter) !important;
+}
+
+.dark .el-popover__title {
+  color: var(--color-ink) !important;
+  border-bottom-color: var(--color-ink-lighter) !important;
+}
+
+.dark .el-popover__body {
+  color: var(--color-ink) !important;
+}
+
+/* 下拉菜单深色模式 */
+.dark .el-dropdown-menu {
+  background-color: #252525 !important;
+  border-color: var(--color-ink-lighter) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+.dark .el-dropdown-menu__item {
+  color: var(--color-ink-light) !important;
+}
+
+.dark .el-dropdown-menu__item:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--color-cinnabar) !important;
+}
+
+.dark .el-dropdown-menu__item.is-disabled {
+  color: var(--color-ink-lighter) !important;
+}
+
+.dark .el-dropdown-menu__item--divided {
+  border-top-color: var(--color-ink-lighter) !important;
+}
