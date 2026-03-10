@@ -271,6 +271,16 @@
   border: none !important;
 }
 
+/* Tooltip 触发器 - 继承文字和图标样式 */
+.el-tooltip__trigger {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.el-tooltip__trigger:hover {
+  opacity: 0.8;
+}
+
 /* Popover */
 .el-popover {
   background-color: var(--color-paper) !important;
