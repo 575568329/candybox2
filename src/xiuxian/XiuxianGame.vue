@@ -18,10 +18,12 @@
     <!-- 游戏内容 -->
     <div :class="['game-container', { dark: player.dark }]">
       <router-view v-slot="{ Component }">
-        <keep-alive v-if="route.meta.keepAlive">
-          <component :is="Component" :key="key" />
-        </keep-alive>
-        <component v-if="!route.meta.keepAlive" :is="Component" :key="key" />
+        <transition name="page" mode="out-in">
+          <keep-alive v-if="route.meta.keepAlive">
+            <component :is="Component" :key="key" />
+          </keep-alive>
+          <component v-else :is="Component" :key="key" />
+        </transition>
       </router-view>
       <div class="footer">
         <el-switch size="small" v-model="player.dark">
@@ -387,6 +389,9 @@ onUnmounted(() => {
 
 /* 引入全局样式 */
 @import './styles/global.css';
+
+/* 引入动画样式 */
+@import './styles/animations.css';
 
 /* 全局样式 - 仅在修仙游戏组件内生效 */
 .xiuxian-game-wrapper {
