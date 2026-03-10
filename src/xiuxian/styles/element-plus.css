@@ -89,7 +89,9 @@
   transition: all var(--transition-fast) !important;
   display: inline-flex !important;
   align-items: center !important;
+  justify-content: center !important;
   gap: 4px !important;
+  line-height: 1 !important;
 }
 
 .el-tag:hover {
@@ -129,18 +131,58 @@
 .el-tag__close {
   color: inherit !important;
   font-size: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  margin-left: 4px !important;
+  flex-shrink: 0 !important;
 }
 
 .el-tag__close:hover {
   background-color: rgba(0, 0, 0, 0.1) !important;
 }
 
-/* 标签内的图标对齐 */
-.el-tag .el-icon {
-  vertical-align: middle !important;
+/* 标签内的所有子元素对齐 */
+.el-tag .el-icon,
+.el-tag .el-tag__content,
+.el-tag .el-tag__close {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
+}
+
+.el-tag .el-icon svg,
+.el-tag .el-tag__close svg {
+  width: 1em !important;
+  height: 1em !important;
+  display: block !important;
+}
+
+/* 确保标签内容容器也是 flex */
+.el-tag .el-tag__content {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+/* 标签内文本对齐 */
+.el-tag span,
+.el-tag text {
+  display: inline !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
+}
+
+/* 防止元素换行 */
+.el-tag {
+  flex-wrap: nowrap !important;
+}
+
+.el-tag .el-tag__content {
+  flex-wrap: nowrap !important;
 }
 
 /* ==================== 对话框（el-dialog） ==================== */
