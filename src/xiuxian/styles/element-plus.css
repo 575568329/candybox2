@@ -135,6 +135,14 @@
   background-color: rgba(0, 0, 0, 0.1) !important;
 }
 
+/* 标签内的图标对齐 */
+.el-tag .el-icon {
+  vertical-align: middle !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
 /* ==================== 对话框（el-dialog） ==================== */
 
 .el-dialog {
