@@ -50,11 +50,77 @@
   --shadow-lg: 0 8px 24px rgba(44, 44, 44, 0.12);
 }
 
-/* 深色模式 */
+/* 深色模式增强 */
 .dark {
   --color-paper: #1a1a1a;
   --color-paper-dark: #252525;
   --color-ink: #e8e4d9;
   --color-ink-light: #c8c8c8;
-  --color-ink-lighter: #8a8a8a;
+  --color-ink-lighter: #6a6a6a;
+
+  /* 深色模式阴影调整 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* 深色模式全局背景 */
+.xiuxian-game-wrapper.dark {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.02) 2px,
+      rgba(255, 255, 255, 0.02) 4px
+    );
+}
+
+/* 深色模式水墨卡片 */
+.dark .ink-card {
+  background-color: var(--color-paper-dark);
+  border-color: var(--color-ink-lighter);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dark .ink-card:hover {
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* 深色模式属性面板 */
+.dark .attribute-plaque {
+  background: linear-gradient(135deg, #3d2914 0%, #4a3320 100%);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .plaque-content {
+  background-color: rgba(30, 30, 30, 0.95);
+  color: var(--color-ink);
+}
+
+/* 深色模式印章 */
+.dark .seal-mark {
+  background-color: rgba(200, 48, 44, 0.2);
+}
+
+/* 深色模式进度条 */
+.dark .ink-progress {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 深色模式按钮 */
+.dark .ink-button-secondary {
+  background-color: var(--color-paper-dark);
+  color: var(--color-ink);
+  border-color: var(--color-ink-light);
+}
+
+.dark .ink-button-secondary:hover:not(.is-disabled) {
+  background-color: #2a2a2a;
 }
