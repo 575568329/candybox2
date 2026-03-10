@@ -1,8 +1,10 @@
 <template>
-  <div class="index">
-    <div class="index-box">
-      <div class="story">
-        <p v-html="storyText" />
+  <div class="home-page">
+    <div class="home-page-content">
+      <!-- 故事区 - 水墨卡片 -->
+      <div class="ink-card story-section">
+        <h2 class="font-title">修仙之路</h2>
+        <div class="story-text font-body" v-html="storyText"></div>
       </div>
       <AttributePanel title="修仙者信息">
         <div class="attributes">
@@ -2585,14 +2587,85 @@
 </script>
 
 <style scoped>
-  .index-box {
-    margin-top: 15px;
+  .home-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+  }
+
+  .home-page-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  /* 故事区 */
+  .story-section {
+    min-height: 120px;
+  }
+
+  .story-section h2 {
+    font-size: 24px;
+    color: var(--color-ink);
+    margin-bottom: var(--spacing-md);
+    text-align: center;
+    letter-spacing: 4px;
+  }
+
+  .story-text {
+    line-height: 1.8;
+    color: var(--color-ink-light);
+    text-indent: 2em;
+  }
+
+  /* 属性网格 */
+  .attributes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .attribute-box {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
   }
 
   .attribute {
-    width: calc(50% - 8px);
-    margin: 4px;
+    width: auto;
+    margin: 0;
     overflow: auto hidden;
+  }
+
+  /* 装备区域 */
+  .equip-box {
+    padding: 0;
+    margin-top: var(--spacing-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .equip-item {
+    margin-bottom: 0;
+    height: auto;
+    line-height: 1.5;
+    padding: var(--spacing-sm);
+    background-color: var(--color-paper);
+    border-radius: var(--radius-sm);
+  }
+
+  .equip {
+    margin-left: var(--spacing-md);
+  }
+
+  /* 背包区域 */
+  .inventory-box {
+    white-space: pre-wrap;
+    min-height: auto;
+    line-height: 1.5;
+    height: auto;
   }
 
   .attribute-box {
@@ -2629,17 +2702,26 @@
   }
 
   .inventory-content {
-    margin-bottom: 15px;
+    margin-bottom: var(--spacing-md);
     height: 120px;
     overflow: auto;
   }
 
   .inventory-item {
-    margin: 4px;
+    margin: var(--spacing-xs);
+  }
+
+  /* 按钮区域 */
+  .actions-section {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: var(--spacing-md) 0;
   }
 
   .dialog-footer {
-    margin-top: 10px;
+    margin-top: var(--spacing-md);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -2647,7 +2729,7 @@
 
   .dialog-footer .el-button {
     margin: 0;
-    margin-bottom: 10px;
+    margin-bottom: var(--spacing-sm);
   }
 
   .dialog-upload {
@@ -2655,12 +2737,12 @@
   }
 
   .dialog-footer-button {
-    margin: 10px 0 0 0 !important;
+    margin: var(--spacing-sm) 0 0 0 !important;
     width: 100%;
   }
 
   .dialog-footer-button:nth-child(2 + n) {
-    margin-top: 10px;
+    margin-top: var(--spacing-sm);
     width: 100%;
   }
 
@@ -2817,38 +2899,91 @@
     }
   }
 
-  /* uTools 窗口专用优化 - 极限压缩 */
-  @media only screen and (max-width: 800px) and (max-height: 500px) {
-    .index {
-      overflow-y: auto;
-      max-height: 320px;
+  /* 响应式适配 */
+  @media (max-width: 600px) {
+    .attribute-box {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* 移动端适配 */
+  @media only screen and (max-width: 768px) {
+    .story-section h2 {
+      font-size: 20px;
     }
 
-    .index-box {
-      margin-top: 3px;
+    .game-container {
+      min-height: 574px;
+      min-width: 356px;
+    }
+
+    .equip-box {
+      padding: 0;
+    }
+
+    .inventory-button {
+      margin-left: 0 !important;
+    }
+
+    .equipAll-item {
+      width: 33%;
+    }
+
+    .achievement-item {
+      width: 50%;
+    }
+
+    .backtop {
+      display: flex;
+    }
+  }
+
+  /* uTools 窗口专用优化 - 极限压缩 */
+  @media only screen and (max-width: 800px) and (max-height: 500px) {
+    .home-page {
+      overflow-y: auto;
+      max-height: 320px;
+      padding: var(--spacing-sm);
+      gap: var(--spacing-sm);
+    }
+
+    .story-section {
+      min-height: 60px;
+    }
+
+    .story-section h2 {
+      font-size: 16px;
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .story-text {
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .attribute-box {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-xs);
     }
 
     .attribute {
-      width: calc(50% - 2px);
-      margin: 1px;
       font-size: 11px;
-      padding: 3px 6px;
+      padding: var(--spacing-xs);
       line-height: 1.3;
     }
 
     .equip-item {
-      margin-bottom: 2px;
-      height: 28px;
-      line-height: 26px;
+      padding: var(--spacing-xs);
+      font-size: 11px;
     }
 
     .equip-box {
-      margin-top: 1px;
+      gap: var(--spacing-xs);
     }
 
     .inventory-content {
       height: 60px;
-      margin-bottom: 4px;
+      margin-bottom: var(--spacing-xs);
     }
 
     .inventory-item {
@@ -2884,11 +3019,11 @@
     .el-collapse,
     .equip-box,
     .inventory-box {
-      margin-top: 3px;
+      margin-top: var(--spacing-xs);
     }
 
     /* 隐藏story文本区域以节省空间 */
-    .story {
+    .story-text {
       display: none;
     }
   }
