@@ -115,6 +115,20 @@
 }
 
 /* 深色模式按钮 */
+.dark .ink-button-primary {
+  background-color: var(--color-cinnabar);
+  box-shadow:
+    0 2px 6px rgba(200, 48, 44, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.dark .ink-button-primary:hover:not(.is-disabled) {
+  background-color: var(--color-cinnabar-light);
+  box-shadow:
+    0 4px 12px rgba(200, 48, 44, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
 .dark .ink-button-secondary {
   background-color: var(--color-paper-dark);
   color: var(--color-ink);
@@ -123,4 +137,113 @@
 
 .dark .ink-button-secondary:hover:not(.is-disabled) {
   background-color: #2a2a2a;
+  border-color: var(--color-ink);
+}
+
+.dark .ink-button-success {
+  background-color: var(--color-jade);
+  box-shadow:
+    0 2px 6px rgba(95, 141, 110, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.dark .ink-button-warning {
+  background-color: var(--color-gold);
+  box-shadow:
+    0 2px 6px rgba(184, 134, 11, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* 深色模式属性项 */
+.dark .attribute-item {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--color-ink);
+}
+
+.dark .attribute-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .attribute-label {
+  color: var(--color-ink-light);
+}
+
+.dark .attribute-value {
+  color: var(--color-ink);
+}
+
+/* 深色模式文本样式 */
+.dark .font-title,
+.dark .story-section h2,
+.dark .cultivate-page h3,
+.dark .boss-info h2 {
+  color: var(--color-gold);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.dark .story-text,
+.dark .log-content,
+.dark .progress-text {
+  color: var(--color-ink-light);
+}
+
+/* 深色模式边框和分割线 */
+.dark .log-content p {
+  border-left-color: var(--color-ink-lighter);
+}
+
+/* 深色模式标题徽章 */
+.dark .title-badge {
+  color: var(--color-cinnabar-light) !important;
+}
+
+/* 深色模式云纹装饰增强 */
+.dark .cloud-decoration {
+  filter: brightness(1.2);
+}
+
+/* 深色模式战斗日志区域 */
+.dark .battle-log {
+  background-color: rgba(37, 37, 37, 0.8);
+  border-color: var(--color-ink-lighter);
+}
+
+/* 深色模式下的输入框 */
+.dark input,
+.dark textarea,
+.dark .el-input__inner {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--color-ink-lighter);
+  color: var(--color-ink);
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark .el-input__inner:focus {
+  border-color: var(--color-cinnabar);
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+/* 深色模式下的选择器 */
+.dark .el-select .el-input__inner {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* 深色模式下的下拉菜单 */
+.dark .el-select-dropdown {
+  background-color: #252525;
+  border-color: var(--color-ink-lighter);
+}
+
+.dark .el-select-dropdown__item {
+  color: var(--color-ink-light);
+}
+
+.dark .el-select-dropdown__item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .el-select-dropdown__item.selected {
+  color: var(--color-cinnabar);
+  background-color: rgba(200, 48, 44, 0.1);
 }
