@@ -851,8 +851,8 @@ const copyToClipboard = async (text, event) => {
   height: 18px;
   padding: 0;
   border: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.5);
+  background: rgba(60, 60, 60, 0.5);
+  color: rgba(255, 255, 255, 0.6);
   border-radius: 3px;
   cursor: pointer;
   transition: all 0.2s;
@@ -860,12 +860,13 @@ const copyToClipboard = async (text, event) => {
 }
 
 .copy-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.8);
+  background: rgba(60, 60, 60, 0.7);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .copy-btn:active {
   transform: scale(0.95);
+  background: rgba(60, 60, 60, 0.8);
 }
 
 .game-action {

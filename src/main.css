@@ -1,5 +1,6 @@
 :root {
   --blue: rgb(88, 164, 246);
+  --gray: rgb(100, 100, 100);
   --light: #fff;
 }
 
@@ -9,22 +10,22 @@ body {
   padding: 0;
 }
 
-/* 只影响非 Element Plus 的普通按钮 */
-button:not(.el-button):not([class*="el-"]) {
+/* 只影响非 Element Plus 的普通按钮，排除 copy-btn */
+button:not(.el-button):not([class*="el-"]):not(.copy-btn) {
   border: none;
-  background: none var(--blue);
+  background: none var(--gray);
   color: var(--light);
   line-height: 2.5;
   cursor: pointer;
   transition: opacity .2s;
 }
 
-button:not(.el-button):not([class*="el-"]):disabled {
+button:not(.el-button):not([class*="el-"]):not(.copy-btn):disabled {
   filter: grayscale(1);
   cursor: not-allowed;
 }
 
-button:not(.el-button):not([class*="el-"]):not(:disabled):active {
+button:not(.el-button):not([class*="el-"]):not(.copy-btn):not(:disabled):active {
   opacity: 0.6;
 }
 

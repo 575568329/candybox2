@@ -61,9 +61,9 @@ const routes = [
   {
     path: '/xiuxian',
     name: 'XiuxianGame',
-    component: () => import('../views/XiuxianGameView.vue'),
+    component: () => import('../xiuxian/XiuxianGame.vue'),
     meta: { category: 'rpg', isVueComponent: true },
-    redirect: '/xiuxian',
+    redirect: '/xiuxian/home',
     children: [
       {
         path: '',

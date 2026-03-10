@@ -50,50 +50,54 @@
      * 处理来自父页面的消息
      */
     handleMessage(event) {
-      // 验证消息来源
-      if (event.origin !== window.location.origin) {
-        return;
-      }
+      try {
+        // 验证消息来源
+        if (event.origin !== window.location.origin) {
+          return;
+        }
 
-      // 防护：确保 event.data 是对象类型
-      if (!event.data || typeof event.data !== 'object') {
-        return;
-      }
+        // 防护：确保 event.data 是对象类型
+        if (!event.data || typeof event.data !== 'object') {
+          return;
+        }
 
-      const { type, data } = event.data;
+        const { type, data } = event.data;
 
-      switch(type) {
-        case 'adarkroom-load-save-response':
-          // 父页面返回存档数据
-          if (data && data.gameState) {
-            console.log('[uTools存档管理器] 收到存档数据');
-            this.applySaveData(data.gameState);
-          }
-          break;
+        switch(type) {
+          case 'adarkroom-load-save-response':
+            // 父页面返回存档数据
+            if (data && data.gameState) {
+              console.log('[uTools存档管理器] 收到存档数据');
+              this.applySaveData(data.gameState);
+            }
+            break;
 
-        case 'adarkroom-save-response':
-          // 保存确认
-          console.log('[uTools存档管理器] 保存确认:', data);
-          break;
+          case 'adarkroom-save-response':
+            // 保存确认（静默处理）
+            break;
 
-        case 'adarkroom-get-save-data':
-          // 存档管理器请求获取存档数据
-          this.sendAllSaveData();
-          break;
+          case 'adarkroom-get-save-data':
+            // 存档管理器请求获取存档数据
+            this.sendAllSaveData();
+            break;
 
-        case 'adarkroom-set-save-data':
-          // 存档管理器请求设置存档数据
-          if (data) {
-            this.setAllSaveData(data);
-          }
-          break;
+          case 'adarkroom-set-save-data':
+            // 存档管理器请求设置存档数据
+            if (data) {
+              this.setAllSaveData(data);
+            }
+            break;
 
-        case 'adarkroom-force-save-request':
-          // 父页面请求立即强制保存
-          if (typeof Engine !== 'undefined' && Engine.saveGame) {
-            Engine.saveGame();
-          }
-          break;
+          case 'adarkroom-force-save-request':
+            // 父页面请求立即强制保存
+            if (typeof Engine !== 'undefined' && Engine.saveGame) {
+              Engine.saveGame();
+            }
+            break;
+        }
+      } catch (error) {
+        console.error('[uTools存档管理器] 处理消息失败:', error);
+        // 消息处理失败不应影响游戏运行
       }
     },
 
@@ -169,7 +173,7 @@
 
         // 检查当前 localStorage 是否已经有存档
         const currentLocalSave = localStorage.getItem(STORAGE_KEY);
-        
+
         // 如果云端存档和本地存档一致，则不需要处理
         if (currentLocalSave === gameStateStr) {
           console.log('[uTools存档管理器] 云端存档与本地存档一致，无需更新');
@@ -186,6 +190,7 @@
         window.location.reload();
       } catch (error) {
         console.error('[uTools存档管理器] 应用存档失败:', error);
+        // 应用存档失败不应阻止游戏运行
       }
     },
 
@@ -234,12 +239,14 @@
   window.UToolsSaveManager = UToolsSaveManager;
 
   // 页面加载完成后初始化
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+  // 使用 setTimeout 确保不阻塞页面加载
+  setTimeout(() => {
+    try {
       UToolsSaveManager.init();
-    });
-  } else {
-    UToolsSaveManager.init();
-  }
+    } catch (e) {
+      console.error('[uTools存档管理器] 初始化失败:', e);
+      // 初始化失败不应影响游戏运行
+    }
+  }, 100);
 
 })();
