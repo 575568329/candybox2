@@ -36,3 +36,41 @@
 .el-dropdown__title {
   font-family: var(--font-title) !important;
 }
+
+/* ==================== 抽屉（el-drawer） ==================== */
+
+.el-drawer {
+  background-color: var(--color-paper) !important;
+  border-left: 2px solid var(--color-ink) !important;
+}
+
+.el-drawer__header {
+  background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%) !important;
+  border-bottom: 2px solid var(--color-ink) !important;
+  padding: 16px 20px !important;
+}
+
+.el-drawer__title {
+  font-family: var(--font-title) !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+  color: var(--color-gold) !important;
+  letter-spacing: 2px !important;
+}
+
+.el-drawer__body {
+  background-color: var(--color-paper) !important;
+  font-family: var(--font-body) !important;
+  color: var(--color-ink) !important;
+  padding: 20px !important;
+}
+
+/* 抽屉关闭按钮 */
+.el-drawer__close-btn {
+  color: var(--color-gold) !important;
+  font-size: 18px !important;
+}
+
+.el-drawer__close-btn:hover {
+  color: #fff !important;
+}
