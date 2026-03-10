@@ -2826,35 +2826,41 @@
   /* 滚动提示 - 左侧渐变遮罩（提示可以左滑） */
   .actions-bar::before {
     content: '«';
-    position: sticky;
+    position: absolute;
     left: 0;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
+    width: 32px;
     height: 100%;
     color: var(--color-cinnabar);
-    font-size: 18px;
+    font-size: 24px;
+    font-weight: bold;
     background: linear-gradient(to right, var(--color-paper), transparent);
     pointer-events: none;
-    opacity: 0.6;
+    opacity: 0.8;
   }
 
   /* 滚动提示 - 右侧渐变遮罩（提示可以右滑） */
   .actions-bar::after {
     content: '»';
-    position: sticky;
+    position: absolute;
     right: 0;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
+    width: 32px;
     height: 100%;
     color: var(--color-cinnabar);
-    font-size: 18px;
+    font-size: 24px;
+    font-weight: bold;
     background: linear-gradient(to left, var(--color-paper), transparent);
     pointer-events: none;
-    opacity: 0.6;
+    opacity: 0.8;
   }
 
   /* 按钮区域 */
@@ -3102,8 +3108,8 @@
 
     .actions-bar::before,
     .actions-bar::after {
-      width: 20px;
-      font-size: 16px;
+      width: 28px;
+      font-size: 20px;
     }
 
     .attribute-box {
