@@ -1,0 +1,60 @@
+/* ==================== 水墨书院风主题变量 ==================== */
+
+:root {
+  /* 宣纸色系 */
+  --color-paper: #f7f4ed;
+  --color-paper-dark: #e8e4d9;
+
+  /* 墨色系 */
+  --color-ink: #2c2c2c;
+  --color-ink-light: #5a5a5a;
+  --color-ink-lighter: #8a8a8a;
+
+  /* 朱砂色（强调色） */
+  --color-cinnabar: #c8302c;
+  --color-cinnabar-light: #e85a52;
+
+  /* 古铜金色（荣誉感） */
+  --color-gold: #b8860b;
+  --color-gold-light: #daa520;
+
+  /* 辅助色 */
+  --color-jade: #5f8d6e;
+  --color-indigo: #4a5d6e;
+
+  /* 字体 */
+  --font-title: 'STXingkai', 'Xingkai SC', 'KaiTi', '楷体', serif;
+  --font-body: 'Noto Serif SC', 'Source Han Serif SC', '宋体', serif;
+  --font-number: 'Noto Sans SC', sans-serif;
+
+  /* 间距 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* 过渡 */
+  --transition-fast: 150ms;
+  --transition-normal: 300ms;
+  --transition-slow: 500ms;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(44, 44, 44, 0.05);
+  --shadow-md: 0 2px 8px rgba(44, 44, 44, 0.08);
+  --shadow-lg: 0 8px 24px rgba(44, 44, 44, 0.12);
+}
+
+/* 深色模式 */
+.dark {
+  --color-paper: #1a1a1a;
+  --color-paper-dark: #252525;
+  --color-ink: #e8e4d9;
+  --color-ink-light: #c8c8c8;
+  --color-ink-lighter: #8a8a8a;
+}

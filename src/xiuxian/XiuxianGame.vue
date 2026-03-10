@@ -382,6 +382,12 @@ onUnmounted(() => {
 </style>
 
 <style>
+/* 引入主题变量 */
+@import './styles/theme.css';
+
+/* 引入全局样式 */
+@import './styles/global.css';
+
 /* 全局样式 - 仅在修仙游戏组件内生效 */
 .xiuxian-game-wrapper {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
