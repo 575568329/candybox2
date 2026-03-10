@@ -1243,6 +1243,20 @@
     achievementAll.value = achievement.all()
     illustrationsItems.value = equipAll.drawPrize(maxLv)
     startGame()
+
+    // 添加鼠标滚轮横向滚动支持
+    const actionsBar = document.querySelector('.actions-bar')
+    if (actionsBar) {
+      actionsBar.addEventListener('wheel', (e) => {
+        // 检测是否在操作栏区域内
+        if (e.target.closest('.actions-bar')) {
+          // 阻止默认垂直滚动
+          e.preventDefault()
+          // 将滚轮的垂直滚动转换为横向滚动
+          actionsBar.scrollLeft += e.deltaY
+        }
+      }, { passive: false })
+    }
   })
 
   // 监听背包标签页切换
@@ -2729,14 +2743,53 @@
     margin: var(--spacing-xs);
   }
 
-  /* 顶部操作按钮栏 - 水平平铺 */
+  /* 顶部操作按钮栏 - 水平滚动 */
   .actions-bar {
     display: flex;
     gap: var(--spacing-sm);
-    justify-content: center;
-    flex-wrap: wrap;
-    padding: var(--spacing-md) 0;
+    justify-content: flex-start;
+    flex-wrap: nowrap; /* 禁止换行 */
+    overflow-x: auto; /* 横向滚动 */
+    overflow-y: hidden;
+    padding: var(--spacing-md);
+    scroll-behavior: smooth;
+    /* 自定义滚动条样式 */
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-cinnabar) var(--color-paper-dark);
     order: -1; /* 确保在内容之前显示 */
+    position: sticky;
+    top: 0;
+    background-color: var(--color-paper);
+    z-index: 10;
+    border-bottom: 1px solid var(--color-ink-lighter);
+    /* 默认隐藏滚动条 */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+
+  /* 鼠标悬停时显示滚动条 */
+  .actions-bar:hover {
+    scrollbar-width: thin;
+    -ms-overflow-style: auto;
+  }
+
+  /* Webkit 浏览器（Chrome, Safari）滚动条样式 */
+  .actions-bar::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .actions-bar::-webkit-scrollbar-track {
+    background: var(--color-paper-dark);
+    border-radius: 3px;
+  }
+
+  .actions-bar::-webkit-scrollbar-thumb {
+    background: var(--color-cinnabar);
+    border-radius: 3px;
+  }
+
+  .actions-bar::-webkit-scrollbar-thumb:hover {
+    background: var(--color-cinnabar-light);
   }
 
   .actions-bar .ink-button {
@@ -2744,6 +2797,41 @@
     min-width: 100px;
     font-size: 14px;
     padding: var(--spacing-sm) var(--spacing-md);
+    white-space: nowrap; /* 按钮文字不换行 */
+  }
+
+  /* 滚动提示 - 左侧渐变遮罩（提示可以左滑） */
+  .actions-bar::before {
+    content: '«';
+    position: sticky;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 100%;
+    color: var(--color-cinnabar);
+    font-size: 18px;
+    background: linear-gradient(to right, var(--color-paper), transparent);
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  /* 滚动提示 - 右侧渐变遮罩（提示可以右滑） */
+  .actions-bar::after {
+    content: '»';
+    position: sticky;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 100%;
+    color: var(--color-cinnabar);
+    font-size: 18px;
+    background: linear-gradient(to left, var(--color-paper), transparent);
+    pointer-events: none;
+    opacity: 0.6;
   }
 
   /* 按钮区域 */
@@ -2938,12 +3026,19 @@
   @media (max-width: 600px) {
     .actions-bar {
       gap: var(--spacing-xs);
+      padding: var(--spacing-sm);
     }
 
     .actions-bar .ink-button {
-      min-width: 80px;
+      min-width: 90px;
       font-size: 13px;
       padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    .actions-bar::before,
+    .actions-bar::after {
+      width: 20px;
+      font-size: 16px;
     }
 
     .attribute-box {
