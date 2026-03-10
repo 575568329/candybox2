@@ -359,6 +359,43 @@ onUnmounted(() => {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* 深色模式开关优化 */
+  .game-container .footer .el-switch {
+    transform: scale(0.9);
+  }
+}
+
+/* 横屏模式优化 */
+@media only screen and (min-width: 768px) and (max-height: 500px) {
+  .game-container {
+    padding: 8px;
+    margin: 8px auto;
+    width: calc(100% - 16px);
+  }
+
+  /* 顶部导航栏优化 */
+  .game-header {
+    height: 44px;
+  }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  /* 增大触摸目标 */
+  .back-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .ink-button {
+    min-height: 44px;
+  }
+
+  /* 优化点击反馈 */
+  .ink-button:active {
+    transform: scale(0.95);
+  }
 }
 
 /* 移动端适配 */

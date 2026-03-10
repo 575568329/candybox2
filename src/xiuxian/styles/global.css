@@ -94,3 +94,197 @@
 .font-number {
   font-family: var(--font-number);
 }
+
+/* ==================== 响应式优化 ==================== */
+
+/* uTools 窗口优化 (800x450) */
+@media only screen and (max-width: 800px) and (max-height: 500px) {
+  .xiuxian-game-wrapper {
+    font-size: 13px;
+  }
+
+  /* 页面容器优化 */
+  .home-page,
+  .cultivate-page,
+  .boss-page,
+  .explore-page {
+    padding: var(--spacing-sm);
+    gap: var(--spacing-sm);
+  }
+
+  /* 卡片优化 */
+  .ink-card {
+    padding: var(--spacing-md);
+  }
+
+  /* 属性网格单列布局 */
+  .attributes-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xs);
+  }
+
+  /* 按钮区域优化 */
+  .actions-section {
+    gap: var(--spacing-xs);
+  }
+
+  /* 按钮尺寸优化 */
+  .ink-button {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: 14px;
+    min-width: 60px;
+  }
+
+  /* 标题字体优化 */
+  .font-title {
+    font-size: 16px;
+  }
+
+  /* 进度条高度优化 */
+  .ink-progress {
+    height: 6px;
+  }
+
+  /* 日志区域优化 */
+  .log-content {
+    max-height: 120px;
+    padding: var(--spacing-xs);
+  }
+
+  /* 属性面板优化 */
+  .attribute-plaque {
+    padding: var(--spacing-md);
+  }
+
+  .plaque-content {
+    padding: var(--spacing-sm);
+    min-height: 40px;
+  }
+
+  .plaque-title {
+    font-size: 18px;
+  }
+
+  /* 故事区优化 */
+  .story-section {
+    min-height: 80px;
+  }
+
+  .story-text {
+    font-size: 13px;
+  }
+}
+
+/* 平板适配 (768px - 1024px) */
+@media only screen and (min-width: 768px) and (max-width: 1024px) {
+  .xiuxian-game-wrapper {
+    font-size: 14px;
+  }
+
+  .attributes-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+  }
+}
+
+/* 移动端适配 */
+@media only screen and (max-width: 768px) {
+  .xiuxian-game-wrapper {
+    font-size: 14px;
+  }
+
+  /* 单列布局 */
+  .home-page,
+  .cultivate-page,
+  .boss-page,
+  .explore-page {
+    padding: var(--spacing-sm);
+  }
+
+  .attributes-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+  }
+
+  /* 按钮堆叠布局 */
+  .actions-section {
+    flex-direction: column;
+  }
+
+  .actions-section .ink-button {
+    width: 100%;
+  }
+
+  /* 减小卡片内边距 */
+  .ink-card {
+    padding: var(--spacing-md);
+  }
+
+  /* 境界显示优化 */
+  .realm-display {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+}
+
+/* 超小屏幕适配 (< 480px) */
+@media only screen and (max-width: 480px) {
+  .xiuxian-game-wrapper {
+    font-size: 13px;
+  }
+
+  .game-container {
+    padding: 8px;
+  }
+
+  /* 极简模式 */
+  .attribute-plaque {
+    padding: var(--spacing-sm);
+  }
+
+  .plaque-title {
+    font-size: 16px;
+    letter-spacing: 2px;
+  }
+
+  .ink-button {
+    font-size: 13px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    min-width: 50px;
+  }
+
+  .ink-card {
+    padding: var(--spacing-sm);
+  }
+
+  /* 日志区域极限压缩 */
+  .log-content {
+    max-height: 100px;
+  }
+
+  /* 进度条极限压缩 */
+  .ink-progress {
+    height: 4px;
+  }
+}
+
+/* 横屏模式优化 */
+@media only screen and (min-width: 768px) and (max-height: 500px) {
+  .home-page,
+  .cultivate-page,
+  .boss-page {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .ink-card {
+    flex: 1;
+    min-width: 250px;
+  }
+
+  .actions-section {
+    width: 100%;
+  }
+}
