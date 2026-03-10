@@ -87,6 +87,9 @@
   font-weight: bold !important;
   font-family: var(--font-body) !important;
   transition: all var(--transition-fast) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
 }
 
 .el-tag:hover {
