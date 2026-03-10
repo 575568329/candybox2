@@ -364,6 +364,21 @@ onUnmounted(() => {
   .game-container .footer .el-switch {
     transform: scale(0.9);
   }
+
+  /* 内部滚动容器优化 */
+  .game-container > * {
+    flex-shrink: 0;
+  }
+
+  /* 允许页面内容内部滚动 */
+  .game-container .home-page,
+  .game-container .cultivate-page,
+  .game-container .boss-page,
+  .game-container .explore-page {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
 }
 
 /* 横屏模式优化 */

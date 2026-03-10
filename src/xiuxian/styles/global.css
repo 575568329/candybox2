@@ -173,6 +173,37 @@
   .story-text {
     font-size: 13px;
   }
+
+  /* 境界显示紧凑模式 */
+  .realm-display {
+    flex-direction: row;
+    gap: var(--spacing-xs);
+  }
+
+  .realm-info {
+    flex: 1;
+  }
+
+  /* 属性标签紧凑显示 */
+  .attribute-item {
+    padding: var(--spacing-xs);
+    min-height: 36px;
+  }
+
+  .attribute-label {
+    font-size: 12px;
+  }
+
+  .attribute-value {
+    font-size: 14px;
+  }
+
+  /* 境界印章缩小 */
+  .realm-seal {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
 }
 
 /* 平板适配 (768px - 1024px) */
@@ -184,6 +215,15 @@
   .attributes-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: var(--spacing-sm);
+  }
+
+  /* 平板横屏优化 */
+  .home-page,
+  .cultivate-page,
+  .boss-page,
+  .explore-page {
+    max-width: 700px;
+    margin: 0 auto;
   }
 }
 
@@ -225,6 +265,21 @@
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-xs);
+  }
+
+  /* 移动端印章样式优化 */
+  .seal {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 14px;
+  }
+
+  /* 移动端标题优化 */
+  h2.font-title {
+    font-size: 18px;
+  }
+
+  h3.font-title {
+    font-size: 16px;
   }
 }
 
