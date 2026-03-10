@@ -74,3 +74,60 @@
 .el-drawer__close-btn:hover {
   color: #fff !important;
 }
+
+/* ==================== 标签组件（el-tag） ==================== */
+
+.el-tag {
+  background-color: var(--color-paper) !important;
+  border: 2px solid var(--color-ink) !important;
+  color: var(--color-ink) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 4px 12px !important;
+  font-size: 13px !important;
+  font-weight: bold !important;
+  font-family: var(--font-body) !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.el-tag:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(44, 44, 44, 0.15) !important;
+}
+
+/* 成功标签 - 玉色 */
+.el-tag--success {
+  background-color: rgba(95, 141, 110, 0.1) !important;
+  border-color: var(--color-jade) !important;
+  color: var(--color-jade) !important;
+}
+
+/* 警告标签 - 古铜金 */
+.el-tag--warning {
+  background-color: rgba(184, 134, 11, 0.1) !important;
+  border-color: var(--color-gold) !important;
+  color: var(--color-gold) !important;
+}
+
+/* 危险标签 - 朱砂红 */
+.el-tag--danger {
+  background-color: rgba(200, 48, 44, 0.1) !important;
+  border-color: var(--color-cinnabar) !important;
+  color: var(--color-cinnabar) !important;
+}
+
+/* 信息标签 - 墨色 */
+.el-tag--info {
+  background-color: rgba(44, 44, 44, 0.05) !important;
+  border-color: var(--color-ink-light) !important;
+  color: var(--color-ink-light) !important;
+}
+
+/* 标签关闭图标 */
+.el-tag__close {
+  color: inherit !important;
+  font-size: 14px !important;
+}
+
+.el-tag__close:hover {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+}
