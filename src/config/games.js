@@ -157,6 +157,20 @@ export const games = [
     duration: '长期游戏',
     githubUrl: 'https://github.com/setube/vue-xiuxiangame.git',
     isVueComponent: true
+  },
+  {
+    id: 'evolve',
+    name: '进化',
+    englishName: 'Evolve',
+    description: '放置类进化模拟游戏，从单细胞开始逐步进化，体验生命演化的奇妙旅程',
+    icon: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 12L28 20H36L32 12Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><circle cx="32" cy="32" r="16" stroke="currentColor" stroke-width="3"/><path d="M32 32V24M32 32L38 38M32 32L26 38" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="32" r="4" fill="currentColor"/></svg>`,
+    path: '/evolve',
+    color: '#7E57C2',
+    category: 'idle',
+    tags: ['放置', '进化', '模拟'],
+    difficulty: '简单',
+    players: '单人',
+    duration: '4-8小时'
   }
 ]
 
