@@ -106,6 +106,17 @@ const routes = [
         component: () => import('../xiuxian/views/game/game.vue')
       }
     ]
+  },
+
+  // 放置游戏组
+  {
+    path: '/evolve',
+    name: 'Evolve',
+    component: () => import('../views/EvolveView.vue'),
+    meta: {
+      title: '进化 - Evolve',
+      gameId: 'evolve'
+    }
   }
 ]
 
