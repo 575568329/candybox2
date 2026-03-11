@@ -170,7 +170,8 @@ export const games = [
     tags: ['放置', '进化', '模拟'],
     difficulty: '简单',
     players: '单人',
-    duration: '4-8小时'
+    duration: '4-8小时',
+    githubUrl: 'https://github.com/pmotschmann/Evolve'
   }
 ]
 
