@@ -23,6 +23,11 @@ export const categories = [
     id: 'strategy',
     name: '策略',
     icon: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="20" stroke="currentColor" stroke-width="4"/><circle cx="32" cy="32" r="12" stroke="currentColor" stroke-width="4"/><circle cx="32" cy="32" r="4" fill="currentColor"/><path d="M32 8V12M32 52V56M8 32H12M52 32H56" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>`
+  },
+  {
+    id: 'idle',
+    name: '放置',
+    icon: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="24" stroke="currentColor" stroke-width="4"/><path d="M32 16V32L40 40" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>`
   }
 ]
 
