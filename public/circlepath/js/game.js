@@ -1,24 +1,63 @@
 var game;
 
+// 添加全局错误处理
+window.onerror = function(message, source, lineno, colno, error) {
+  console.error('[游戏错误]', message, 'at', source + ':' + lineno);
+  // 如果是 Phaser 相关错误，显示友好提示
+  if (message && message.indexOf('Phaser') !== -1) {
+    document.body.innerHTML = '<div style="color:white;text-align:center;padding:50px;font-family:sans-serif;"><h2>游戏加载失败</h2><p>Phaser 库未正确加载，请检查网络连接</p></div>';
+  }
+  return false; // 不阻止默认错误处理
+};
+
 var ballDistance = 120;
 var rotationSpeed = 4;
 var angleRange = [25, 155];
 var visibleTargets = 7;
 var bgColors = [0x62bd18, 0xffbb00, 0xff5300, 0xd21034, 0xff475c, 0x8f16b2];
 
-window.onload = function() {	
-	game = new Phaser.Game(640, 960, Phaser.CANVAS, "");
-     game.state.add("PlayGame", playGame);
-     game.state.start("PlayGame");
+window.onload = function() {
+  try {
+    // 检查 Phaser 是否已加载
+    if (typeof Phaser === 'undefined') {
+      console.error('[游戏] Phaser 库未加载');
+      document.body.innerHTML = '<div style="color:#fff;text-align:center;padding:50px;font-family:sans-serif;"><h2>游戏加载失败</h2><p>Phaser 库未正确加载，请检查网络连接或刷新页面重试</p><button onclick="location.reload()" style="padding:10px 20px;margin-top:20px;cursor:pointer;background:#62bd18;color:white;border:none;border-radius:5px;font-size:16px;">刷新页面</button></div>';
+      return;
+    }
+
+    game = new Phaser.Game(640, 960, Phaser.CANVAS, "");
+    game.state.add("PlayGame", playGame);
+    game.state.start("PlayGame");
+  } catch (error) {
+    console.error('[游戏] 初始化失败:', error);
+    document.body.innerHTML = '<div style="color:#fff;text-align:center;padding:50px;font-family:sans-serif;"><h2>游戏初始化失败</h2><p>错误信息: ' + error.message + '</p><button onclick="location.reload()" style="padding:10px 20px;margin-top:20px;cursor:pointer;background:#62bd18;color:white;border:none;border-radius:5px;font-size:16px;">刷新页面</button></div>';
+  }
 }
 
-var mapIndex = localStorage.getItem("circlepath_mapIndex") || 0;
-mapIndex = parseInt(mapIndex);
+// 读取 mapIndex，失败则使用默认值 0（不影响游戏启动）
+var mapIndex = 0;
+try {
+  var savedIndex = localStorage.getItem("circlepath_mapIndex");
+  if (savedIndex !== null && savedIndex !== '') {
+    var parsed = parseInt(savedIndex);
+    if (!isNaN(parsed) && parsed >= 0 && parsed < 6) {
+      mapIndex = parsed;
+    }
+  }
+} catch (e) {
+  // 静默忽略，使用默认值
+  mapIndex = 0;
+}
 
 window.addEventListener('message', function(event) {
      if (event.data.type === 'CHANGE_MAP') {
           mapIndex = (mapIndex + 1) % bgColors.length;
-          localStorage.setItem("circlepath_mapIndex", mapIndex);
+          // 静默保存，失败不影响游戏
+          try {
+            localStorage.setItem("circlepath_mapIndex", mapIndex);
+          } catch (e) {
+            // 忽略保存错误
+          }
           if (game && game.state) {
                game.state.start("PlayGame");
           }
@@ -38,7 +77,21 @@ playGame.prototype = {
      },
      create: function(){
           game.rnd.sow([mapIndex]);
-          this.savedData = localStorage.getItem("circlepath")==null?{score:0}:JSON.parse(localStorage.getItem("circlepath"));
+
+          // 读取存档，任何错误都使用默认值（完全不影响游戏启动）
+          this.savedData = { score: 0 };
+          try {
+            var savedDataStr = localStorage.getItem("circlepath");
+            if (savedDataStr && savedDataStr !== '') {
+              var parsed = JSON.parse(savedDataStr);
+              if (parsed && typeof parsed.score === 'number' && parsed.score >= 0) {
+                this.savedData = parsed;
+              }
+            }
+          } catch (e) {
+            // 静默忽略，使用默认值 { score: 0 }
+          }
+
           var style = {
                font: "bold 64px Arial",
                fill: "#ffffff"
@@ -155,9 +208,14 @@ playGame.prototype = {
           this.targetArray.push(target);      
      },
      gameOver: function(){
-          localStorage.setItem("circlepath",JSON.stringify({
+          // 静默保存存档，失败不影响游戏
+          try {
+            localStorage.setItem("circlepath",JSON.stringify({
                score: Math.max(this.savedData.score, this.steps - visibleTargets)
-	     }));
+	    }));
+          } catch (e) {
+            // 忽略保存错误
+          }
           game.input.onDown.remove(this.changeBall, this);
           game.input.keyboard.onDownCallback = null;
           this.saveRotationSpeed = 0;

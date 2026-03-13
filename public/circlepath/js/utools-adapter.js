@@ -18,6 +18,7 @@
     isInitialized: false,
     saveTimer: null,
     isLoadingSave: false,  // 防止重复加载存档
+    isApplyingRemoteSave: false,  // 防止应用云端存档时触发同步
 
     /**
      * 初始化
@@ -26,6 +27,9 @@
       if (this.isInitialized) return;
 
       try {
+        // 先设置标志，防止初始化时触发同步
+        this.isApplyingRemoteSave = true;
+
         // 监听来自父页面的消息
         window.addEventListener('message', this.handleMessage.bind(this));
 
@@ -40,13 +44,16 @@
 
         // 延迟请求存档，确保游戏已启动
         setTimeout(() => {
+          // 清除标志，开始正常同步
+          this.isApplyingRemoteSave = false;
           this.requestLoadFromUTools();
-        }, 1000);
+        }, 1500);
 
         this.isInitialized = true;
         console.log('[uTools存档管理器] 初始化成功');
       } catch (error) {
         console.error('[uTools存档管理器] 初始化失败:', error);
+        this.isApplyingRemoteSave = false;
         // 即使初始化失败，也不应阻止游戏运行
       }
     },
@@ -189,46 +196,50 @@
         }
 
         this.isLoadingSave = true;
+        this.isApplyingRemoteSave = true;  // 设置标志，防止触发同步
 
         // 检查当前 localStorage 是否已经有存档
         const currentLocalSave = localStorage.getItem('circlepath');
 
         // 遍历云端数据，应用到本地
-        let needsReload = false;
+        let hasChanges = false;
         for (const key in data) {
           const cloudValue = data[key];
           const localValue = localStorage.getItem(key);
 
-          // 如果云端数据和本地数据不同，则更新
+          // 只有当云端数据更新时才应用
           if (cloudValue !== localValue) {
             try {
+              // 直接设置，不触发拦截器（因为有 isApplyingRemoteSave 标志）
+              const originalSetItem = localStorage.setItem;
+              localStorage.setItem = function(k, v) {
+                originalSetItem.call(this, k, v);
+              };
               localStorage.setItem(key, cloudValue);
-              needsReload = true;
+              localStorage.setItem = originalSetItem;
+              hasChanges = true;
             } catch (e) {
               console.error('[uTools存档管理器] 设置键失败:', key, e);
             }
           }
         }
 
-        if (needsReload && currentLocalSave !== data.circlepath) {
-          console.log('[uTools存档管理器] 正在应用云端存档并刷新游戏...');
-          // 使用 reloadGuard 标记防止循环刷新
-          const reloadFlag = sessionStorage.getItem('circlepath_reload_guard');
-          if (!reloadFlag) {
-            sessionStorage.setItem('circlepath_reload_guard', '1');
-            window.location.reload();
-          } else {
-            sessionStorage.removeItem('circlepath_reload_guard');
-            console.log('[uTools存档管理器] 检测到循环刷新，已取消');
-          }
+        // 清除标志（延迟清除，确保所有 setItem 完成）
+        setTimeout(() => {
+          this.isApplyingRemoteSave = false;
+        }, 100);
+
+        if (hasChanges) {
+          console.log('[uTools存档管理器] 已应用云端存档，无需刷新（游戏会自动使用新数据）');
         } else {
-          console.log('[uTools存档管理器] 云端存档与本地存档一致，无需更新');
+          console.log('[uTools存档管理器] 云端存档与本地存档一致');
         }
 
         this.isLoadingSave = false;
       } catch (error) {
         console.error('[uTools存档管理器] 应用存档失败:', error);
         this.isLoadingSave = false;
+        this.isApplyingRemoteSave = false;
       }
     },
 
@@ -306,8 +317,11 @@
         const result = originalSetItem.call(this, key, value);
 
         // 如果是游戏相关的 key，自动同步到 uTools
+        // 但要排除：正在应用云端存档时、正在初始化时
         if ((key === 'circlepath' || key === 'circlepath_mapIndex') &&
-            window.UToolsSaveManager && window.UToolsSaveManager.isInitialized) {
+            window.UToolsSaveManager &&
+            window.UToolsSaveManager.isInitialized &&
+            !window.UToolsSaveManager.isApplyingRemoteSave) {
           window.UToolsSaveManager.saveToUTools();
         }
 
