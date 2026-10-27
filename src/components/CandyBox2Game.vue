@@ -1,60 +1,17 @@
 <script setup>
+/**
+ * 糖果盒子2(Candy Box 2) 游戏组件
+ * 壳层由 GameShell 提供，本组件保留：多槽位存档体系(utools dbStorage)、
+ * 30秒自动保存、Ctrl+S、iframe 内链接拦截(槽位切换)、Toast 通知。
+ */
 import { onMounted, onUnmounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import GameShell from './GameShell.vue'
 import { analyticsTracker } from '../utils/analyticsTracker'
 
-const router = useRouter()
 const iframeRef = ref(null)
 const lastSaveTime = ref(null)
 const showSaveTime = ref(false) // 控制保存时间的显示
 const iframeUrl = ref('')
-
-// 导航栏自动收起
-const headerVisible = ref(true)
-let headerTimer = null
-
-// 显示导航栏
-const showHeader = () => {
-  headerVisible.value = true
-  if (headerTimer) {
-    clearTimeout(headerTimer)
-    headerTimer = null
-  }
-}
-
-// 隐藏导航栏
-const hideHeader = () => {
-  headerVisible.value = false
-}
-
-// 延迟隐藏导航栏
-const scheduleHideHeader = () => {
-  if (headerTimer) {
-    clearTimeout(headerTimer)
-  }
-  headerTimer = setTimeout(() => {
-    hideHeader()
-  }, 3000) // 3秒后自动隐藏
-}
-
-// 鼠标进入顶部区域
-const onMouseEnterHeader = () => {
-  showHeader()
-}
-
-// 鼠标离开顶部区域
-const onMouseLeaveHeader = () => {
-  scheduleHideHeader()
-}
-
-// 鼠标在游戏区域移动
-const onMouseMoveGame = (event) => {
-  // 如果鼠标在顶部50px内，显示导航栏
-  if (event.clientY < 50) {
-    showHeader()
-    scheduleHideHeader()
-  }
-}
 
 // Toast 通知状态
 const toastMessage = ref('')
@@ -62,7 +19,7 @@ const toastVisible = ref(false)
 let toastTimer = null
 let saveTimeTimer = null // 保存时间显示的定时器
 
-// 🔥 新增：定时自动保存
+// 定时自动保存
 let autoSaveInterval = null
 const AUTO_SAVE_INTERVAL = 30000 // 每30秒自动保存一次
 
@@ -86,9 +43,8 @@ const showSaveTimeTemp = () => {
   }, 5000) // 5秒后自动隐藏
 }
 
-// 返回游戏列表
-const goBack = async () => {
-  // 返回前自动保存
+// 退出前自动保存（GameShell beforeExit 钩子）
+const saveBeforeExit = async () => {
   showToast('💾 正在保存存档...')
 
   try {
@@ -101,18 +57,9 @@ const goBack = async () => {
 
     // 等待用户看到成功提示
     await new Promise(r => setTimeout(r, 800))
-
-    // 结束游戏会话（埋点）
-    analyticsTracker.endGameSession()
-
-    router.push('/')
   } catch (error) {
     console.error('❌ Candy Box 2 保存失败:', error)
     showToast('⚠️ 保存失败')
-
-    // 即使失败也要结束会话（埋点）
-    analyticsTracker.endGameSession()
-    router.push('/')
   }
 }
 
@@ -190,10 +137,6 @@ const setupIframeKeyboardListener = () => {
       })()
     }
   }, true)
-
-  // iframe 加载完成后，不再自动调用 loadAutoSave
-  // 因为我们在组件挂载时已经用正确的槽位初始化了 iframe
-  // 游戏会自动读取对应槽位的存档
 }
 
 // 自动保存游戏进度（保存所有槽位数据）
@@ -305,15 +248,6 @@ const triggerAutoSave = async () => {
 }
 
 onMounted(async () => {
-  // 开始游戏会话（埋点）
-  analyticsTracker.startGameSession({
-    id: 'candybox2',
-    name: '糖果盒子2'
-  })
-
-  // 3秒后自动隐藏导航栏
-  scheduleHideHeader()
-
   // 启动定时自动保存（每30秒保存一次）
   autoSaveInterval = setInterval(async () => {
     try {
@@ -404,54 +338,22 @@ onUnmounted(async () => {
     clearInterval(autoSaveInterval)
   }
   window.removeEventListener('beforeunload', triggerAutoSave)
-
-  // 清理导航栏定时器
-  if (headerTimer) {
-    clearTimeout(headerTimer)
-  }
-
-  // 结束游戏会话（埋点）
-  analyticsTracker.endGameSession()
 })
 </script>
 
 <template>
-  <div class="candybox2-wrapper" @mousemove="onMouseMoveGame">
-    <!-- 自定义 Toast 通知 -->
-    <Transition name="toast-fade">
-      <div v-if="toastVisible" class="toast-notification">
-        {{ toastMessage }}
-      </div>
-    </Transition>
-
-    <!-- 顶部导航栏容器 -->
-    <div
-      class="header-container"
-      :class="{ 'header-hidden': !headerVisible }"
-      @mouseenter="onMouseEnterHeader"
-      @mouseleave="onMouseLeaveHeader"
-    >
-      <!-- 顶部导航栏 -->
-      <div class="game-header">
-          <button class="back-btn" @click="goBack">
-            <span class="back-icon">←</span>
-            <span class="back-text">返回</span>
-          </button>
-          <div class="game-title">
-            <span class="game-icon">🍬</span>
-            <span class="game-title-text">糖果盒子2</span>
-            <span class="game-version">v1.2.3</span>
-          </div>
-
-          <!-- 保存提示 -->
-          <div class="save-info">
-            <div class="shortcut-hint">Ctrl+S 保存 | 自动存档已启用</div>
-          </div>
-        </div>
-    </div>
-
-    <!-- 游戏容器 - 使用 iframe 完全隔离 -->
-    <div class="game-container">
+  <GameShell
+    game-id="candybox2"
+    game-name="糖果盒子2"
+    game-english-name="Candy Box 2 - Ctrl+S 保存 | 自动存档已启用"
+    game-icon="🍬"
+    icon-color="#e74c3c"
+    background-color="#131417"
+    accent-color="#e74c3c"
+    :exit-confirm="false"
+    :before-exit="saveBeforeExit"
+  >
+    <div class="candybox2-container">
       <iframe
         ref="iframeRef"
         :src="iframeUrl"
@@ -468,17 +370,30 @@ onUnmounted(async () => {
         </div>
       </Transition>
     </div>
-  </div>
+
+    <!-- 自定义 Toast 通知 -->
+    <Transition name="toast-fade">
+      <div v-if="toastVisible" class="toast-notification">
+        {{ toastMessage }}
+      </div>
+    </Transition>
+  </GameShell>
 </template>
 
 <style scoped>
-.candybox2-wrapper {
+.candybox2-container {
   width: 100%;
-  height: 100vh;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
+  height: 100%;
+  position: relative;
   overflow: hidden;
+  background: #fff;
+}
+
+.game-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
 }
 
 /* Toast 通知 */
@@ -495,21 +410,8 @@ onUnmounted(async () => {
   font-size: 14px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   z-index: 9998;
-  animation: toastSlideIn 0.3s ease-out;
 }
 
-@keyframes toastSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(100px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Toast 淡入淡出动画 */
 .toast-fade-enter-active,
 .toast-fade-leave-active {
   transition: all 0.3s ease;
@@ -521,132 +423,7 @@ onUnmounted(async () => {
   transform: translateX(100px);
 }
 
-/* 导航栏容器 */
-.header-container {
-  position: relative;
-  z-index: 1000;
-  transition: transform 0.3s ease;
-  flex-shrink: 0;
-  background: var(--gs-shell-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--gs-border);
-}
-
-.header-container.header-hidden {
-  transform: translateY(-100%);
-}
-
-/* 顶部导航栏 */
-.game-header {
-  height: 56px;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-}
-
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 4px 12px;
-  background: var(--gs-btn-bg);
-  border: 1px solid var(--gs-btn-border);
-  border-radius: var(--gs-radius);
-  color: var(--gs-text-1);
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.back-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translateX(-1px);
-}
-
-.back-icon {
-  font-size: 12px;
-  line-height: 1;
-}
-
-.back-text {
-  font-weight: 500;
-}
-
-.game-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.game-icon {
-  font-size: 24px;
-}
-
-.game-title-text {
-  font-size: 18px;
-  font-weight: 600;
-  color: white;
-}
-
-.game-version {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-/* 保存信息 */
-.save-info {
-  display: flex;
-  align-items: center;
-}
-
-.shortcut-hint {
-  padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 11px;
-  font-family: monospace;
-  white-space: nowrap;
-}
-
-/* 游戏容器 */
-.game-container {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  background: #fff;
-}
-
-/* 导航栏过渡动画 */
-.header-slide-enter-active,
-.header-slide-leave-active {
-  transition: transform 0.3s ease, opacity 0.3s ease;
-}
-
-.header-slide-enter-from,
-.header-slide-leave-to {
-  transform: translateY(-100%);
-  opacity: 0;
-}
-
-.game-iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-  display: block;
-}
-
+/* 保存时间提示 */
 .save-time {
   position: absolute;
   bottom: 20px;
@@ -660,69 +437,13 @@ onUnmounted(async () => {
   backdrop-filter: blur(10px);
 }
 
-/* 保存时间淡入淡出动画 */
 .save-time-fade-enter-active,
 .save-time-fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .save-time-fade-enter-from,
 .save-time-fade-leave-to {
   opacity: 0;
-  transform: translateY(10px);
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .game-header {
-    padding: 0 12px;
-    flex-wrap: wrap;
-    height: auto;
-    min-height: 56px;
-    padding-top: 8px;
-    padding-bottom: 8px;
-  }
-
-  .back-btn {
-    padding: 5px 8px;
-    gap: 3px;
-  }
-
-  .back-text {
-    display: none;
-  }
-
-  .back-icon {
-    font-size: 16px;
-  }
-
-  .game-title-text {
-    font-size: 16px;
-  }
-
-  .game-version {
-    display: none;
-  }
-
-  .save-info {
-    width: 100%;
-    order: 3;
-    justify-content: center;
-    margin-top: 8px;
-  }
-
-  .save-time {
-    bottom: 10px;
-    right: 10px;
-    font-size: 11px;
-    padding: 6px 12px;
-  }
-
-  .toast-notification {
-    top: 60px;
-    right: 12px;
-    left: 12px;
-    font-size: 13px;
-  }
 }
 </style>

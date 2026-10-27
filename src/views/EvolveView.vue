@@ -1,114 +1,25 @@
 <script setup>
+/**
+ * 进化(Evolve) 游戏视图
+ * 壳层由 GameShell 提供，本视图保留：存档桥接(utools db)、
+ * Wiki/存档管理对话框、promoBar 隐藏与链接拦截、关窗强制保存。
+ */
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import GameShell from '../components/GameShell.vue'
 import { analyticsTracker } from '../utils/analyticsTracker'
 import { getGameById } from '../config/games'
 
-const router = useRouter()
-
-// 获取游戏配置
 const gameConfig = getGameById('evolve')
 
 const iframeRef = ref(null)
 const isLoading = ref(true)
 const hasError = ref(false)
 
-// 导航栏自动收起
-const headerVisible = ref(true)
-let headerTimer = null
-
-// 显示导航栏
-const showHeader = () => {
-  headerVisible.value = true
-  if (headerTimer) {
-    clearTimeout(headerTimer)
-    headerTimer = null
-  }
-}
-
-// 隐藏导航栏
-const hideHeader = () => {
-  headerVisible.value = false
-}
-
-// 延迟隐藏导航栏
-const scheduleHideHeader = () => {
-  if (headerTimer) {
-    clearTimeout(headerTimer)
-  }
-  headerTimer = setTimeout(() => {
-    hideHeader()
-  }, 3000) // 3秒后自动隐藏
-}
-
-// 鼠标进入顶部区域
-const onMouseEnterHeader = () => {
-  showHeader()
-}
-
-// 鼠标离开顶部区域
-const onMouseLeaveHeader = () => {
-  scheduleHideHeader()
-}
-
-// 鼠标在游戏区域移动
-const onMouseMoveGame = (event) => {
-  // 如果鼠标在顶部50px内，显示导航栏
-  if (event.clientY < 50) {
-    showHeader()
-    scheduleHideHeader()
-  }
-}
-
-// 退出确认
-const showExitConfirm = ref(false)
-
-// Wiki 和存档对话框
+// Wiki / 存档管理对话框
 const showWikiDialog = ref(false)
 const showSaveDialog = ref(false)
 
-// uTools云存档相关
-const GAME_ID = 'evolve'
 const UTOOLS_STORAGE_KEY = 'game_save_evolve'
-
-// 组件挂载
-onMounted(() => {
-  console.log('[Evolve] 组件已挂载')
-
-  // 注册消息监听器，处理iframe的存档请求
-  window.addEventListener('message', handleIframeMessage)
-
-  // 监听 uTools 窗口隐藏事件，确保关闭前保存存档
-  if (window.utools && window.utools.onPluginEnter) {
-    // uTools 插件显示/隐藏监听
-    window.addEventListener('beforeunload', handleBeforeUnload)
-  }
-
-  // 开始游戏会话（埋点）
-  analyticsTracker.startGameSession({
-    id: 'evolve',
-    name: '进化'
-  })
-
-  // 3秒后自动隐藏导航栏
-  scheduleHideHeader()
-})
-
-// 返回游戏列表
-const goBack = () => {
-  showExitConfirm.value = true
-}
-
-const confirmExit = () => {
-  showExitConfirm.value = false
-  // 结束游戏会话（埋点）
-  analyticsTracker.endGameSession()
-  router.push('/')
-}
-
-const cancelExit = () => {
-  showExitConfirm.value = false
-}
 
 // 窗口卸载前的处理（保存存档）
 const handleBeforeUnload = async () => {
@@ -125,12 +36,11 @@ const handleBeforeUnload = async () => {
   await new Promise(resolve => setTimeout(resolve, 500))
 }
 
-// 打开 Wiki 页面
+// 打开 Wiki / 存档页面
 const openWiki = () => {
   showWikiDialog.value = true
 }
 
-// 打开存档页面
 const openSave = () => {
   showSaveDialog.value = true
 }
@@ -424,129 +334,52 @@ const removeCorruptedSave = async (saveId) => {
   }
 }
 
+onMounted(() => {
+  // 注册消息监听器，处理iframe的存档请求
+  window.addEventListener('message', handleIframeMessage)
+  window.addEventListener('beforeunload', handleBeforeUnload)
+})
+
 onUnmounted(() => {
-  console.log('[Evolve] 组件已卸载')
-
-  // 如果还有未结束的会话，结束它
-  analyticsTracker.endGameSession()
-
-  // 清除定时器
-  if (headerTimer) {
-    clearTimeout(headerTimer)
-    headerTimer = null
-  }
-
-  // 移除消息监听器
+  // 移除监听器
   window.removeEventListener('message', handleIframeMessage)
   window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 </script>
 
 <template>
-  <div class="evolve-view" @mousemove="onMouseMoveGame">
-    <!-- 顶部感应区，用于在导航栏隐藏时唤出 -->
-    <div class="header-trigger" @mouseenter="showHeader"></div>
+  <GameShell
+    game-id="evolve"
+    game-name="进化"
+    game-english-name="Evolve - 物种进化模拟"
+    :game-icon="gameConfig.icon"
+    icon-color="#58a4fc"
+    background-color="#131417"
+    accent-color="#58a4fc"
+    :loading="isLoading"
+    :error="hasError"
+  >
+    <template #actions>
+      <button @click="openWiki" title="查看游戏 Wiki">
+        <span>📖</span>
+        <span>进化维基</span>
+      </button>
+      <button @click="openSave" title="游戏存档管理">
+        <span>💾</span>
+        <span>存档</span>
+      </button>
+    </template>
 
-    <!-- 顶部导航栏容器 -->
-    <div
-      class="header-container"
-      :class="{ 'header-hidden': !headerVisible }"
-      @mouseenter="onMouseEnterHeader"
-      @mouseleave="onMouseLeaveHeader"
-    >
-      <!-- 顶部导航栏 -->
-      <div class="game-header">
-        <button
-          class="back-btn"
-          @click="goBack"
-          title="返回游戏列表"
-        >
-          <span class="back-icon">←</span>
-          <span class="back-text">返回</span>
-        </button>
-        <div class="game-title">
-          <!-- 安全说明: gameConfig.icon 是内部静态 SVG 配置，非用户输入，XSS 风险可控 -->
-          <span class="game-icon" v-html="gameConfig.icon"></span>
-          <div class="title-text">
-            <h1 class="game-name">进化</h1>
-            <p class="game-english-name">Evolve - 物种进化模拟</p>
-          </div>
-        </div>
-        <div class="header-actions">
-          <button
-            class="action-btn"
-            @click="openWiki"
-            title="查看游戏 Wiki"
-          >
-            <span class="action-icon">📖</span>
-            <span class="action-text">进化维基</span>
-          </button>
-          <button
-            class="action-btn"
-            @click="openSave"
-            title="游戏存档管理"
-          >
-            <span class="action-icon">💾</span>
-            <span class="action-text">存档</span>
-          </button>
-        </div>
-        <div class="spacer"></div>
-      </div>
-    </div>
-
-    <!-- 游戏容器 -->
-    <div class="game-container">
-      <!-- 加载状态 -->
-      <div v-if="isLoading" class="loading-state">
-        <div class="loading-spinner"></div>
-        <p class="loading-text">正在加载游戏...</p>
-      </div>
-
-      <!-- 错误状态 -->
-      <div v-else-if="hasError" class="error-state">
-        <div class="error-icon">⚠️</div>
-        <h2 class="error-title">游戏加载失败</h2>
-        <p class="error-message">无法加载游戏，请检查网络连接</p>
-        <button class="error-btn" @click="goBack">返回游戏列表</button>
-      </div>
-
-      <!-- 游戏框架 -->
-      <iframe
-        v-show="!isLoading && !hasError"
-        ref="iframeRef"
-        src="/evolve/index.html"
-        class="game-frame"
-        @load="onIframeLoad"
-        @error="onIframeError"
-        frameborder="0"
-        allowfullscreen
-      ></iframe>
-    </div>
-
-    <!-- 退出确认弹窗 -->
-    <transition name="fade">
-      <div v-if="showExitConfirm" class="confirm-overlay" @click="cancelExit">
-        <div class="confirm-dialog" @click.stop>
-          <div class="confirm-header">
-            <div class="confirm-icon">🚪</div>
-            <h3>退出游戏</h3>
-          </div>
-          <div class="confirm-body">
-            <p>确定要退出游戏吗？</p>
-          </div>
-          <div class="confirm-footer">
-            <button class="confirm-btn cancel" @click="cancelExit">
-              <span class="btn-icon">↩</span>
-              <span>取消</span>
-            </button>
-            <button class="confirm-btn primary" @click="confirmExit">
-              <span class="btn-icon">✓</span>
-              <span>退出</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </transition>
+    <iframe
+      v-show="!isLoading && !hasError"
+      ref="iframeRef"
+      src="/evolve/index.html"
+      class="game-frame"
+      @load="onIframeLoad"
+      @error="onIframeError"
+      frameborder="0"
+      allowfullscreen
+    ></iframe>
 
     <!-- Wiki 对话框 -->
     <transition name="fade">
@@ -585,345 +418,34 @@ onUnmounted(() => {
         </div>
       </div>
     </transition>
-  </div>
+  </GameShell>
 </template>
 
 <style scoped>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-.evolve-view {
-  width: 100%;
-  height: 100vh;
-  background: #1a1a2e;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-}
-
-/* 导航栏容器 */
-.header-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  transition: transform 0.3s ease;
-  background: var(--gs-shell-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--gs-border);
-}
-
-/* 顶部感应区 */
-.header-trigger {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 15px;
-  z-index: 99;
-}
-
-.header-container.header-hidden {
-  transform: translateY(-100%);
-}
-
-/* 顶部导航栏 */
-.game-header {
-  height: 48px;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-}
-
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 4px 12px;
-  background: var(--gs-btn-bg);
-  border: 1px solid var(--gs-btn-border);
-  border-radius: var(--gs-radius);
-  color: var(--gs-text-1);
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.back-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.game-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.game-icon {
-  width: 24px;
-  height: 24px;
-  margin-right: 12px;
-  line-height: 1;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-.game-icon :deep(svg) {
-  width: 100%;
-  height: 100%;
-  stroke: currentColor;
-}
-
-.title-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.game-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: white;
-  line-height: 1.2;
-}
-
-.game-english-name {
-  font-size: 12px;
-  color: var(--gs-text-2);
-  line-height: 1.3;
-}
-
-.header-actions {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  color: #fff;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.action-btn:hover {
-  background: rgba(155, 89, 182, 0.3);
-  border-color: rgba(155, 89, 182, 0.5);
-}
-
-.action-icon {
-  font-size: 16px;
-  line-height: 1;
-}
-
-.action-text {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-@media (max-width: 768px) {
-  .action-text {
-    display: none;
-  }
-
-  .action-btn {
-    padding: 6px 10px;
-  }
-}
-
-.spacer {
-  width: 60px;
-}
-
-/* 游戏容器 */
-.game-container {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-}
-
 .game-frame {
   width: 100%;
   height: 100%;
   border: none;
 }
 
-/* 加载状态 */
-.loading-state {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  background: #1a1a2e;
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #9b59b6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-text {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-/* 错误状态 */
-.error-state {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  background: #1a1a2e;
-  padding: 20px;
-}
-
-.error-icon {
-  font-size: 48px;
-}
-
-.error-title {
-  font-size: 20px;
-  color: white;
-}
-
-.error-message {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.6);
-  text-align: center;
-}
-
-.error-btn {
-  margin-top: 16px;
-  padding: 8px 20px;
-  background: #9b59b6;
-  border: none;
-  border-radius: 6px;
-  color: white;
-  cursor: pointer;
-}
-
-/* 退出确认弹窗 */
-.confirm-overlay {
+/* Wiki / 存档 对话框 */
+.dialog-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-}
-
-.confirm-dialog {
-  background: #1a1a2e;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 24px;
-  width: 300px;
-  text-align: center;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-}
-
-.confirm-header h3 {
-  color: white;
-  margin-bottom: 16px;
-}
-
-.confirm-body p {
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 24px;
-}
-
-.confirm-footer {
-  display: flex;
-  gap: 12px;
-}
-
-.confirm-btn {
-  flex: 1;
-  padding: 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  border: none;
-  font-weight: 500;
-}
-
-.confirm-btn.primary {
-  background: #e74c3c;
-  color: white;
-}
-
-.confirm-btn.cancel {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-}
-
-/* Wiki 和存档对话框 */
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 10px;
+  z-index: 1001;
 }
 
 .dialog-content {
-  background: #1a1a2e;
-  border-radius: 8px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  width: 90%;
-  max-width: 900px;
-  height: 80vh;
+  background: var(--gs-surface);
+  border: 1px solid var(--gs-border);
+  border-radius: 12px;
+  width: 86vw;
+  height: 84vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -934,61 +456,47 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(155, 89, 182, 0.1);
-  flex-shrink: 0;
+  border-bottom: 1px solid var(--gs-border);
 }
 
 .dialog-header h3 {
-  color: #fff;
+  color: var(--gs-text-1);
   font-size: 16px;
-  font-weight: 600;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .close-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 20px;
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
+  background: var(--gs-btn-bg);
+  border: 1px solid var(--gs-btn-border);
+  border-radius: var(--gs-radius);
+  color: var(--gs-text-1);
+  width: 30px;
+  height: 30px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  line-height: 1;
-  padding: 0;
+  font-size: 14px;
 }
 
 .close-btn:hover {
-  background: rgba(231, 76, 60, 0.3);
-  color: #fff;
+  background: var(--gs-btn-bg-hover);
 }
 
 .dialog-body {
   flex: 1;
   overflow: hidden;
-  background: #fff;
 }
 
 .dialog-iframe {
   width: 100%;
   height: 100%;
   border: none;
-  display: block;
 }
 
-/* 过渡动画 */
-.fade-enter-active, .fade-leave-active {
+.fade-enter-active,
+.fade-leave-active {
   transition: opacity 0.3s;
 }
-.fade-enter-from, .fade-leave-to {
+
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
 }
 </style>
