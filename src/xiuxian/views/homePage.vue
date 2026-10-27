@@ -1143,6 +1143,7 @@
   import equipTooltip from '../components/equipTooltip.vue'
   import { ElMessageBox } from 'element-plus'
   import { useMainStore } from '../plugins/store'
+  import crypto from '../plugins/crypto'
   import {
     maxLv,
     dropdownType,
@@ -1466,6 +1467,7 @@
     }).then(() => {
       // 清空存档
       localStorage.removeItem('vuex')
+      localStorage.removeItem(SAVE_KEY)
       // 刷新页面
       location.reload(1)
     })
@@ -1602,10 +1604,36 @@
         gameNotifys({ title: '提示', message: '存档删除成功' })
         // 清空存档
         localStorage.removeItem('vuex')
+        localStorage.removeItem(SAVE_KEY)
         // 刷新页面
         location.reload(1)
       })
       .catch(() => {})
+  }
+
+  // 存档持久化 key（pinia persist 配置，见 plugins/store.js；上游 Vuex 版用的 'vuex' 已废弃）
+  const SAVE_KEY = 'xiuxian_save'
+
+  // 校验并归一化导入的存档文本，返回可直接写入 SAVE_KEY 的 JSON 字符串
+  // 兼容两种格式：本插件导出的加密格式 / 上游 Vuex 版的明文快照
+  const normalizeSave = text => {
+    const data = JSON.parse(text)
+    const state = data && typeof data === 'object' && data.state && typeof data.state === 'object' ? data.state : data
+    if (!state || typeof state !== 'object' || !state.player) {
+      throw new Error('存档内容缺少 player 数据')
+    }
+    // 上游明文存档：对象字段需重新加密后才能进入本地持久化格式
+    if (typeof state.player === 'object') {
+      return JSON.stringify({
+        boss: crypto.encryption(state.boss || {}),
+        player: crypto.encryption(state.player),
+        monster: state.monster || {},
+        mapData: state.mapData || { y: 0, x: 0, map: [] },
+        mapScroll: state.mapScroll || 0,
+        fishingMap: state.fishingMap || []
+      })
+    }
+    return JSON.stringify(state)
   }
 
   // 电脑导入存档
@@ -1613,25 +1641,41 @@
     const file = data.file
     const reader = new FileReader()
     reader.onload = e => {
+      let saveText
       try {
-        // 导入存档
-        localStorage.setItem('vuex', e.target.result)
-        // 刷新页面
-        location.reload(1)
-      } catch (err) {
-        err.value = err
+        saveText = normalizeSave(e.target.result)
+      } catch (importErr) {
+        err.value = `存档导入失败: ${importErr.message}`
         errBox.value = true
         gameNotifys({
-          title: '脚本导入失败',
-          message: '复制错误信息到QQ群内'
+          title: '存档导入失败',
+          message: '文件不是有效的存档，原存档未受影响'
         })
+        return
       }
+      localStorage.setItem(SAVE_KEY, saveText)
+      // 刷新页面
+      location.reload(1)
+    }
+    reader.onerror = () => {
+      gameNotifys({
+        title: '存档导入失败',
+        message: '文件读取失败，请重试'
+      })
     }
     reader.readAsText(file)
   }
 
   // 导出存档
   const exportData = () => {
+    const saveText = localStorage.getItem(SAVE_KEY)
+    if (!saveText) {
+      gameNotifys({
+        title: '存档导出提示',
+        message: '暂无可导出的存档'
+      })
+      return
+    }
     const today = new Date()
     const year = today.getFullYear()
     const month = String(today.getMonth() + 1).padStart(2, '0')
@@ -1639,7 +1683,7 @@
     const hours = String(today.getHours()).padStart(2, '0')
     const minutes = String(today.getMinutes()).padStart(2, '0')
     const seconds = String(today.getSeconds()).padStart(2, '0')
-    const blob = new Blob([localStorage.getItem('vuex')], {
+    const blob = new Blob([saveText], {
       type: 'application/json;charset=utf-8'
     })
     const name = `我的文字修仙全靠刷-${year}${month}${day}${hours}${minutes}${seconds}-${ver.value}.json`

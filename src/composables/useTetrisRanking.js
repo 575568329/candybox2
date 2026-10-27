@@ -1,9 +1,14 @@
 /**
  * 俄罗斯方块排行榜功能
+ * v4.0：迁移到自建阿里云 tracker-server（getpantry.cloud 已失效）
+ * - 上榜走 POST /rank/<token>/tetris，合并逻辑（排序/top3000/每人3条）全部由服务端完成
+ * - userKey 用 uTools openId（稳定匿名ID），服务端按它去重，nickname 仅作展示名
  */
 import { ref } from 'vue'
+import { COLLECT_CONFIG } from '../config/collectConfig.js'
 
-const RANKING_API = 'https://getpantry.cloud/apiv1/pantry/9eafe9e6-8ff7-41ab-b111-ecabbc1685a7/basket/ELSFK_RANK'
+const RANKING_API = `${COLLECT_CONFIG.API}/rank/${COLLECT_CONFIG.TOKEN}/${COLLECT_CONFIG.RANK_BOARD}`
+const USER_KEY_STORAGE = 'tetris_rank_user_key'
 const MAX_RANKING = 3000
 const DISPLAY_RANKING = 10
 const RANKING_REFRESH_COOLDOWN = 60000
@@ -23,14 +28,25 @@ export function useTetrisRanking() {
         const user = window.utools.getUser()
         return {
           nickname: user.nickname || '匿名玩家',
-          avatar: user.avatar || ''
+          avatar: user.avatar || '',
+          userKey: user.openId || getLocalUserKey()
         }
       } catch (error) {
         console.error('获取用户信息失败:', error)
-        return { nickname: '匿名玩家', avatar: '' }
+        return { nickname: '匿名玩家', avatar: '', userKey: getLocalUserKey() }
       }
     }
-    return { nickname: '本地玩家', avatar: '' }
+    return { nickname: '本地玩家', avatar: '', userKey: getLocalUserKey() }
+  }
+
+  // 无 openId 时用本地持久 UUID 兜底（跨会话稳定，服务端按它去重）
+  const getLocalUserKey = () => {
+    let key = localStorage.getItem(USER_KEY_STORAGE)
+    if (!key) {
+      key = 'local-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10)
+      localStorage.setItem(USER_KEY_STORAGE, key)
+    }
+    return key
   }
 
   // 加载排行榜
@@ -106,7 +122,7 @@ export function useTetrisRanking() {
     return rank > MAX_RANKING ? null : rank
   }
 
-  // 上传分数
+  // 上传分数（服务端合并：排序 + top3000 + 每人最多3条）
   const uploadScore = async (score, level, lines) => {
     const userInfo = getUserInfo()
     if (!userInfo || !window.utools) {
@@ -114,85 +130,41 @@ export function useTetrisRanking() {
     }
 
     try {
-      const response = await fetch(RANKING_API)
-      const data = await response.json()
-      let ranking = data.ranking || []
-
-      const userRecords = ranking.filter(r => r.nickname === userInfo.nickname)
-      const minScore = ranking.length >= MAX_RANKING ? ranking[MAX_RANKING - 1]?.score || 0 : 0
-      const userMinScore = userRecords.length > 0 ? Math.min(...userRecords.map(r => r.score)) : 0
-
-      if (score < minScore && score <= userMinScore) {
-        return { success: false, message: '分数不足以进入排行榜' }
-      }
-
-      ranking.push({
-        nickname: userInfo.nickname,
-        score,
-        level,
-        lines,
-        timestamp: Date.now()
-      })
-
-      ranking.sort((a, b) => b.score - a.score)
-      if (ranking.length > MAX_RANKING) {
-        ranking.splice(MAX_RANKING)
-      }
-
-      // 每个用户只保留最高的3条记录
-      const updatedRanking = []
-      const userRecordMap = new Map()
-
-      for (const record of ranking) {
-        const key = record.nickname
-        if (!userRecordMap.has(key)) {
-          userRecordMap.set(key, [])
-        }
-        const records = userRecordMap.get(key)
-
-        if (records.length < 3) {
-          records.push(record)
-        } else {
-          const minUserRecord = records.reduce((min, r) => r.score < min.score ? r : min)
-          if (record.score > minUserRecord.score) {
-            const minIndex = records.indexOf(minUserRecord)
-            records[minIndex] = record
-          }
-        }
-      }
-
-      for (const records of userRecordMap.values()) {
-        updatedRanking.push(...records)
-      }
-
-      updatedRanking.sort((a, b) => b.score - a.score)
-
-      const uploadResponse = await fetch(RANKING_API, {
+      const response = await fetch(RANKING_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ranking: updatedRanking })
+        body: JSON.stringify({
+          nickname: userInfo.nickname,
+          score,
+          level,
+          lines,
+          userKey: userInfo.userKey
+        })
       })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || `上传分数失败 (${response.status})`)
 
-      if (!uploadResponse.ok) throw new Error('上传分数失败')
-
-      const newUserRank = updatedRanking.findIndex(
-        r => r.nickname === userInfo.nickname && r.score === score
-      ) + 1
-
-      return { success: true, rank: newUserRank }
+      if (!data.qualified) {
+        return { success: false, message: '分数不足以进入排行榜' }
+      }
+      return { success: true, rank: data.rank }
     } catch (error) {
       return { success: false, message: error.message }
     }
   }
 
-  // 更新当前用户排名
+  // 更新当前用户排名（优先按稳定 userKey 匹配，退回 nickname）
   const updateCurrentUserRanking = (userInfo) => {
     if (!userInfo || !rankingData.value) {
       currentUserRanking.value = null
       return
     }
 
-    const userRecords = rankingData.value.filter(r => r.nickname === userInfo.nickname)
+    const userRecords = rankingData.value.filter(r =>
+      r.userKey && userInfo.userKey
+        ? r.userKey === userInfo.userKey
+        : r.nickname === userInfo.nickname
+    )
     userRecords.sort((a, b) => b.score - a.score)
     currentUserRanking.value = userRecords.slice(0, 3)
   }
