@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useTetrisGame, BOARD_WIDTH, BOARD_HEIGHT, BLOCK_SIZE } from '../composables/useTetrisGame.js'
 import { useTetrisKeyboard } from '../composables/useTetrisKeyboard.js'
 import { useTetrisRanking } from '../composables/useTetrisRanking.js'
@@ -21,11 +21,10 @@ const updateBoardScale = () => {
   const boardPixelHeight = BOARD_HEIGHT * BLOCK_SIZE + 8
   const boardPixelWidth = BOARD_WIDTH * BLOCK_SIZE + 8
   const availH = window.innerHeight - 130 // 顶部栏+内边距
-  const availW = window.innerWidth - 520  // 两侧面板预留
+  const availW = Math.max(120, window.innerWidth - 520) // 两侧面板预留(窄窗口兜底)
   const scale = Math.min(availH / boardPixelHeight, availW / boardPixelWidth)
   boardScale.value = Math.max(1, Math.min(1.5, scale))
 }
-window.addEventListener('resize', updateBoardScale)
 updateBoardScale()
 const toast = ref({ show: false, message: '', type: 'info' })
 let toastTimer = null
@@ -155,6 +154,7 @@ const handleBeforeUnload = () => {
 
 // 生命周期
 onMounted(async () => {
+  window.addEventListener('resize', updateBoardScale)
   window.addEventListener('beforeunload', handleBeforeUnload)
 
   userInfo.value = ranking.getUserInfo()
@@ -390,7 +390,7 @@ onUnmounted(async () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 48px 8px 8px 8px;
+  padding: var(--gs-header-h, 48px) 8px 8px 8px; /* 顶部让位 GameShell 常驻头部 */
 }
 
 .game-content {
@@ -507,7 +507,6 @@ onUnmounted(async () => {
 .value.level { color: #22c55e; }
 .value.lines { color: #0ea5e9; }
 
-.user-name { font-size: 14px; font-weight: 600; }
 .rank { font-size: 14px; font-weight: 600; color: #22c55e; }
 
 /* 下一个方块 */
@@ -525,7 +524,6 @@ onUnmounted(async () => {
 .control-item { padding: 2px 0; color: rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
 
 /* 设置开关 */
-.setting-box { cursor: default; }
 .setting-row {
   display: flex;
   align-items: center;

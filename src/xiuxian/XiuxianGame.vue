@@ -38,6 +38,7 @@ import { ElMessage } from 'element-plus'
 const player = ref({})
 const route = useRoute()
 const key = computed(() => route.path)
+let ageTimer = null
 
 // 退出前自动保存（GameShell beforeExit 钩子）
 const saveBeforeExit = async () => {
@@ -102,8 +103,8 @@ onMounted(() => {
   // 初始化云存档自动同步
   initAutoSync()
 
-  // 每分钟增加1岁
-  setInterval(() => {
+  // 每分钟增加1岁（卸载时清理, 避免反复进出叠加多个计时器）
+  ageTimer = setInterval(() => {
     if (player.value) {
       player.value.age = (player.value.age || 0) + 1
       player.value.time = new Date().getTime()
@@ -121,6 +122,12 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  // 清理年龄计时器
+  if (ageTimer) {
+    clearInterval(ageTimer)
+    ageTimer = null
+  }
+
   // 停止云存档自动同步
   stopAutoSync()
 })
@@ -131,7 +138,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%; /* GameShell .gs-game 内已按视口分配 */
-  padding-top: 48px; /* GameShell 常驻头部高度 */
+  padding-top: var(--gs-header-h, 48px); /* GameShell 常驻头部高度 */
   box-sizing: border-box;
   -webkit-user-drag: none;
 }
@@ -141,7 +148,7 @@ onUnmounted(() => {
   width: calc(100% - 30px);  /* 留出左右各 15px 边距 */
   max-width: 760px;           /* 800 - 40 = 760px */
   /* 减去导航栏高度后的可用高度 */
-  max-height: calc(100vh - 48px - 30px);  /* 48px导航栏 + 30px上下边距 */
+  max-height: calc(100vh - var(--gs-header-h, 48px) - 30px);  /* 导航栏 + 30px上下边距 */
   margin: 15px auto;
   padding: 15px;              /* 减小内边距以节省空间 */
   background-color: rgba(255, 255, 255, 0.5);

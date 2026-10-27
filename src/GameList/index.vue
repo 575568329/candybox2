@@ -467,26 +467,6 @@ const copyToClipboard = async (text, event) => {
   gap: 12px;
 }
 
-.icon-btn {
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: white;
-  font-size: 18px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.icon-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: scale(1.05);
-}
-
 .stat-item {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.7);
@@ -745,45 +725,6 @@ const copyToClipboard = async (text, event) => {
   color: white;
 }
 
-.preview-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 10px 12px;
-}
-
-.stat-icon {
-  font-size: 18px;
-}
-
-.stat-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.stat-label {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.6);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.stat-value {
-  font-size: 14px;
-  font-weight: 700;
-  color: white;
-}
-
 /* 模态框消息 */
 .modal-message {
   text-align: center;
@@ -895,10 +836,6 @@ const copyToClipboard = async (text, event) => {
 }
 
 @media (max-width: 600px) {
-  .preview-stats {
-    grid-template-columns: 1fr;
-  }
-
   .game-start-modal {
     max-width: 320px;
   }
