@@ -1,50 +1,46 @@
 <template>
-  <div class="xiuxian-game-wrapper">
-    <!-- 顶部导航栏 -->
-    <div class="game-header">
-      <el-button class="back-btn" @click="goBack" title="返回游戏列表">
-        <span class="back-icon">←</span>
-        <span class="back-text">返回</span>
-      </el-button>
-      <div class="game-title">
-        <span class="game-icon">⚔️</span>
-        <div class="title-text">
-          <h1 class="game-name">文字修仙</h1>
-          <p class="game-english-name">Xiuxian Game</p>
-        </div>
+  <GameShell
+    game-id="xiuxian"
+    game-name="文字修仙"
+    game-english-name="完整修仙RPG · 自动云存档"
+    game-icon="⚔️"
+    icon-color="#d4a95c"
+    background-color="#131417"
+    accent-color="#d4a95c"
+    :auto-hide-header="false"
+    :exit-confirm="false"
+    :before-exit="saveBeforeExit"
+  >
+    <div class="xiuxian-game-wrapper">
+      <!-- 游戏内容 -->
+      <div :class="['game-container', { dark: player.dark }]">
+        <router-view v-slot="{ Component }">
+          <transition name="page" mode="out-in">
+            <keep-alive v-if="route.meta.keepAlive">
+              <component :is="Component" :key="key" />
+            </keep-alive>
+            <component v-else :is="Component" :key="key" />
+          </transition>
+        </router-view>
       </div>
     </div>
-
-    <!-- 游戏内容 -->
-    <div :class="['game-container', { dark: player.dark }]">
-      <router-view v-slot="{ Component }">
-        <transition name="page" mode="out-in">
-          <keep-alive v-if="route.meta.keepAlive">
-            <component :is="Component" :key="key" />
-          </keep-alive>
-          <component v-else :is="Component" :key="key" />
-        </transition>
-      </router-view>
-    </div>
-  </div>
+  </GameShell>
 </template>
 
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useXiuxianStore } from './plugins/store'
-import { analyticsTracker } from '../utils/analyticsTracker'
+import GameShell from '../components/GameShell.vue'
 import { initAutoSync, stopAutoSync, saveToUTools } from './utils/cloudSave'
 import { ElMessage } from 'element-plus'
 
-const router = useRouter()
 const player = ref({})
 const route = useRoute()
 const key = computed(() => route.path)
 
-// 返回游戏列表（带自动保存）
-const goBack = async () => {
-  // 显示保存提示
+// 退出前自动保存（GameShell beforeExit 钩子）
+const saveBeforeExit = async () => {
   const savingMsg = ElMessage({
     message: '正在保存游戏...',
     type: 'info',
@@ -63,33 +59,28 @@ const goBack = async () => {
       ElMessage({
         message: '游戏已保存',
         type: 'success',
-        duration: 1500
+        duration: 1200
       })
     } else if (result.reason === 'not_utools') {
       // 非 uTools 环境，Pinia 已经自动保存到 localStorage
       ElMessage({
         message: '游戏已保存（本地）',
         type: 'success',
-        duration: 1500
+        duration: 1200
       })
     }
 
-    // 延迟跳转，让用户看到保存成功提示
-    setTimeout(() => {
-      router.push('/')
-    }, 500)
+    // 留出提示可见时间
+    await new Promise(r => setTimeout(r, 500))
   } catch (error) {
     savingMsg.close()
     console.error('[返回] 保存失败:', error)
     ElMessage({
       message: '保存失败，但已自动保存到本地',
       type: 'warning',
-      duration: 2000
+      duration: 1500
     })
-    // 即使保存失败也跳转，因为本地已有自动保存
-    setTimeout(() => {
-      router.push('/')
-    }, 2000)
+    await new Promise(r => setTimeout(r, 800))
   }
 }
 
@@ -107,12 +98,6 @@ onMounted(() => {
   // 初始化玩家数据
   const store = useXiuxianStore()
   player.value = store.player || { dark: false }
-
-  // 开始游戏会话（埋点）
-  analyticsTracker.startGameSession({
-    id: 'xiuxian',
-    name: '文字修仙'
-  })
 
   // 初始化云存档自动同步
   initAutoSync()
@@ -136,9 +121,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  // 结束游戏会话（埋点）
-  analyticsTracker.endGameSession()
-
   // 停止云存档自动同步
   stopAutoSync()
 })
@@ -148,116 +130,10 @@ onUnmounted(() => {
 .xiuxian-game-wrapper {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100%; /* GameShell .gs-game 内已按视口分配 */
+  padding-top: 48px; /* GameShell 常驻头部高度 */
+  box-sizing: border-box;
   -webkit-user-drag: none;
-}
-
-/* 顶部导航栏 */
-.game-header {
-  height: 48px;
-  background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 16px;
-  flex-shrink: 0;
-}
-
-.back-btn {
-  position: absolute;
-  left: 16px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 6px;
-  color: white;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.back-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: translateX(-2px);
-}
-
-.back-icon {
-  font-size: 14px;
-  line-height: 1;
-}
-
-.back-text {
-  font-weight: 500;
-}
-
-.game-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.game-icon {
-  font-size: 24px;
-  line-height: 1;
-}
-
-.title-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.game-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: white;
-  line-height: 1.2;
-  margin: 0;
-}
-
-.game-english-name {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.8);
-  line-height: 1.2;
-  margin: 0;
-}
-
-/* uTools 窗口优化 */
-@media only screen and (max-width: 800px) and (max-height: 500px) {
-  .game-header {
-    height: 44px;
-    padding: 0 12px;
-  }
-
-  .back-btn {
-    padding: 5px 10px;
-    font-size: 12px;
-    left: 12px;
-  }
-
-  .game-icon {
-    font-size: 20px;
-  }
-
-  .game-name {
-    font-size: 14px;
-  }
-
-  .game-english-name {
-    font-size: 10px;
-  }
-}
-
-.game-container-wrapper {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
 }
 
 .game-container {
@@ -348,21 +224,11 @@ onUnmounted(() => {
     margin: 8px auto;
     width: calc(100% - 16px);
   }
-
-  /* 顶部导航栏优化 */
-  .game-header {
-    height: 44px;
-  }
 }
 
 /* 触摸设备优化 */
 @media (hover: none) and (pointer: coarse) {
   /* 增大触摸目标 */
-  .back-btn {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
   .ink-button {
     min-height: 44px;
   }

@@ -42,20 +42,6 @@ const saveInfo = ref({
 const showGameStartModal = ref(false)
 const selectedGame = ref(null)
 
-// 打赏弹窗
-const showDonateModal = ref(false)
-
-// 打开打赏弹窗
-const openDonateModal = () => {
-  showDonateModal.value = true
-
-  // 追踪打赏按钮点击
-  analyticsTracker.trackUserAction('donate_click', {
-    source: 'game_list',
-    timestamp: Date.now()
-  })
-}
-
 // 筛选后的游戏列表
 const filteredGames = computed(() => {
   let result = gamesList.value
@@ -259,30 +245,8 @@ const copyToClipboard = async (text, event) => {
             {{ stats.comingSoon }} 款即将推出
           </span>
         </div>
-        <button class="donate-btn" @click="openDonateModal" title="打赏支持">
-          <span class="donate-icon">👍</span>
-        </button>
       </div>
     </div>
-
-    <!-- 打赏弹窗 -->
-    <transition name="fade">
-      <div v-if="showDonateModal" class="donate-overlay" @click="showDonateModal = false">
-        <div class="donate-modal" @click.stop>
-          <div class="donate-header">
-            <h3>💝 感谢支持</h3>
-            <button class="close-btn" @click="showDonateModal = false">✕</button>
-          </div>
-          <div class="donate-content">
-            <p class="donate-text">如果您喜欢这个小游戏集合，欢迎打赏支持～</p>
-            <div class="donate-image-container">
-              <img src="/zs.png" alt="打赏二维码" class="donate-qr-code" />
-            </div>
-            <p class="donate-hint">微信扫码即可打赏</p>
-          </div>
-        </div>
-      </div>
-    </transition>
 
     <!-- 游戏启动确认弹窗 -->
     <div v-if="showGameStartModal" class="game-start-overlay" @click="showGameStartModal = false">
@@ -954,153 +918,5 @@ const copyToClipboard = async (text, event) => {
   .btn-desc {
     font-size: 10px;
   }
-
-  .donate-btn {
-    width: 40px;
-    height: 40px;
-  }
-
-  .donate-icon {
-    width: 24px;
-    height: 24px;
-  }
-}
-
-/* 打赏按钮 */
-.donate-btn {
-  width: 44px;
-  height: 44px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s;
-  margin-left: 12px;
-  flex-shrink: 0;
-}
-
-.donate-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 107, 107, 0.5);
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
-}
-
-.donate-icon {
-  font-size: 24px;
-  line-height: 1;
-}
-
-/* 打赏弹窗 */
-.donate-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.donate-modal {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
-  max-width: 400px;
-  width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
-}
-
-.donate-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24px 28px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.donate-header h3 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: white;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.donate-header .close-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: rgba(255, 255, 255, 0.8);
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  font-size: 18px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.donate-header .close-btn:hover {
-  background: rgba(255, 107, 107, 0.2);
-  color: #ff6b6b;
-}
-
-.donate-content {
-  padding: 28px;
-  text-align: center;
-}
-
-.donate-text {
-  margin: 0 0 20px;
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.6;
-}
-
-.donate-image-container {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.donate-qr-code {
-  max-width: 100%;
-  width: 240px;
-  height: auto;
-  border-radius: 8px;
-}
-
-.donate-hint {
-  margin: 0;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-/* 淡入淡出动画 */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 </style>

@@ -1,13 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useTetrisGame, BOARD_WIDTH, BOARD_HEIGHT, BLOCK_SIZE } from '../composables/useTetrisGame.js'
 import { useTetrisKeyboard } from '../composables/useTetrisKeyboard.js'
 import { useTetrisRanking } from '../composables/useTetrisRanking.js'
 import { useTetrisSave } from '../composables/useTetrisSave.js'
-import { analyticsTracker } from '../utils/analyticsTracker.js'
-
-const router = useRouter()
 
 // 使用 composables
 const game = useTetrisGame()
@@ -65,22 +61,6 @@ const keyboard = useTetrisKeyboard({
   gameOver: game.gameOver,
   isPaused: game.isPaused
 })
-
-// 返回游戏列表
-const goBack = async () => {
-  if (game.isPlaying.value && !game.gameOver.value) {
-    await save.saveGame({
-      board: game.board.value,
-      score: game.score.value,
-      level: game.level.value,
-      lines: game.lines.value,
-      currentPiece: game.currentPiece.value,
-      nextPiece: game.nextPiece.value
-    })
-  }
-  analyticsTracker.endGameSession()
-  router.push('/')
-}
 
 // 开始游戏
 const handleStart = () => {
@@ -175,8 +155,6 @@ const handleBeforeUnload = () => {
 
 // 生命周期
 onMounted(async () => {
-  analyticsTracker.startGameSession({ id: 'tetris', name: '俄罗斯方块' })
-  
   window.addEventListener('beforeunload', handleBeforeUnload)
 
   userInfo.value = ranking.getUserInfo()
@@ -217,19 +195,11 @@ onUnmounted(async () => {
       nextPiece: game.nextPiece.value
     })
   }
-
-  // 结束游戏会话（埋点）
-  analyticsTracker.endGameSession()
 })
 </script>
 
 <template>
   <div class="tetris-container" :class="{ 'focus-mode': focusMode }">
-    <!-- 返回按钮 -->
-    <button class="back-btn" @click="goBack">
-      <span>←</span><span>返回</span>
-    </button>
-
     <!-- 游戏区域 -->
     <div class="game-area">
       <!-- 专注模式退出按钮 -->
@@ -407,37 +377,13 @@ onUnmounted(async () => {
 <style scoped>
 .tetris-container {
   width: 100%;
-  height: 100vh;
+  height: 100%; /* GameShell .gs-game 内已按视口分配 */
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   display: flex;
   flex-direction: column;
   color: white;
   overflow: hidden;
-}
-
-.back-btn {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 4px 12px;
-  background: var(--gs-btn-bg);
-  border: 1px solid var(--gs-btn-border);
-  border-radius: var(--gs-radius);
-  color: var(--gs-text-1);
-  font-size: 13px;
-  cursor: pointer;
-  z-index: 1000;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.back-btn:hover {
-  background: var(--gs-btn-bg-hover);
-  border-color: var(--gs-btn-border-hover);
 }
 
 .game-area {
