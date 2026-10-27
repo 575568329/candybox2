@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { saveManager } from '../utils/saveManager.js'
 import { analyticsTracker } from '../utils/analyticsTracker.js'
 import { categories, games, searchGames } from '../config/games.js'
+import GameCard from './GameCard.vue'
 
 const router = useRouter()
 
@@ -358,64 +359,13 @@ const copyToClipboard = async (text, event) => {
       <!-- 右侧游戏网格 -->
       <div class="games-section">
         <div class="games-grid">
-          <div
+          <GameCard
             v-for="game in filteredGames"
             :key="game.id"
-            class="game-card"
-            :class="{
-              disabled: game.disabled,
-              'coming-soon': game.comingSoon
-            }"
-            :style="{ '--card-color': game.color }"
-            @click="openGame(game)"
-          >
-            <div class="game-header">
-              <!-- 安全说明: game.icon 是内部静态 SVG 配置，非用户输入，XSS 风险可控 -->
-              <div class="game-icon" v-html="game.icon"></div>
-              <div class="header-actions">
-                <div v-if="game.isExternalLink" class="external-link-badge">转载</div>
-                <div v-if="game.comingSoon" class="coming-soon-badge">即将推出</div>
-              </div>
-            </div>
-
-            <div class="game-info">
-              <h3 class="game-name">{{ game.name }}</h3>
-              <p class="game-english-name">{{ game.englishName }}</p>
-              <p class="game-description">{{ game.description }}</p>
-
-              <div class="game-meta">
-                <div class="game-tags">
-                  <span
-                    v-for="tag in game.tags"
-                    :key="tag"
-                    class="tag"
-                  >
-                    {{ tag }}
-                  </span>
-                </div>
-                <div class="game-details">
-                  <span class="detail-item">难度: {{ game.difficulty }}</span>
-                  <span class="detail-item">{{ game.players }}</span>
-                  <span v-if="game.duration" class="detail-item">时长: {{ game.duration }}</span>
-                  <div v-if="game.githubUrl" class="github-container">
-                    <span class="github-url">{{ game.githubUrl }}</span>
-                    <button class="copy-btn" @click="copyToClipboard(game.githubUrl, $event)" title="复制地址">
-                      <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor">
-                        <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
-                        <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="game-action">
-              <span v-if="game.comingSoon">敬请期待</span>
-              <span v-else-if="game.disabled">暂不可用</span>
-              <span v-else>开始游戏 →</span>
-            </div>
-          </div>
+            :game="game"
+            @open="openGame"
+            @copy-url="copyToClipboard"
+          />
         </div>
 
         <!-- 空状态 -->
@@ -663,13 +613,6 @@ const copyToClipboard = async (text, event) => {
   font-weight: 500;
 }
 
-/* 游戏信息区域 - 让它填充剩余空间 */
-.game-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
 /* 右侧游戏区域 */
 .games-section {
   flex: 1;
@@ -681,202 +624,6 @@ const copyToClipboard = async (text, event) => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
-}
-
-/* 游戏卡片 */
-.game-card {
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 200px;
-}
-
-.game-card:hover:not(.disabled) {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-}
-
-.game-card.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.game-card.coming-soon {
-  opacity: 0.6;
-}
-
-.game-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--card-color);
-}
-
-.game-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 8px;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.game-icon {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--card-color);
-  flex-shrink: 0;
-  transition: all 0.3s ease;
-}
-
-.game-icon :deep(svg) {
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
-}
-
-.game-card:hover:not(.disabled) .game-icon {
-  transform: scale(1.1);
-  filter: drop-shadow(0 0 8px var(--card-color));
-}
-
-.coming-soon-badge {
-  font-size: 10px;
-  color: #ffd93d;
-  background: rgba(255, 217, 61, 0.15);
-  padding: 3px 8px;
-  border-radius: 8px;
-  font-weight: 500;
-}
-
-.external-link-badge {
-  font-size: 10px;
-  color: #90cdf4;
-  background: rgba(144, 205, 244, 0.15);
-  padding: 3px 8px;
-  border-radius: 8px;
-  font-weight: 500;
-  margin-right: 4px;
-}
-
-.game-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: white;
-  margin-bottom: 2px;
-  line-height: 1.3;
-}
-
-.game-english-name {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 6px;
-}
-
-.game-description {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.4;
-  margin-bottom: 8px;
-  min-height: 34px;
-}
-
-.game-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: auto;
-}
-
-.game-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.tag {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.game-details {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.6);
-  align-items: center;
-}
-
-.github-container {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.github-url {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 9px;
-  user-select: all;
-}
-
-.copy-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: none;
-  background: rgba(60, 60, 60, 0.5);
-  color: rgba(255, 255, 255, 0.6);
-  border-radius: 3px;
-  cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.copy-btn:hover {
-  background: rgba(60, 60, 60, 0.7);
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.copy-btn:active {
-  transform: scale(0.95);
-  background: rgba(60, 60, 60, 0.8);
-}
-
-.game-action {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  text-align: center;
-  font-size: 12px;
-  color: var(--card-color);
-  font-weight: 500;
 }
 
 /* 空状态 */
