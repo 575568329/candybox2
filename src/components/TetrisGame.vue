@@ -400,21 +400,24 @@ onUnmounted(async () => {
   position: fixed;
   top: 10px;
   left: 10px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 5px;
-  color: white;
-  font-size: 11px;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 12px;
+  background: var(--gs-btn-bg);
+  border: 1px solid var(--gs-btn-border);
+  border-radius: var(--gs-radius);
+  color: var(--gs-text-1);
+  font-size: 13px;
   cursor: pointer;
   z-index: 1000;
+  transition: background 0.2s, border-color 0.2s;
 }
 
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--gs-btn-bg-hover);
+  border-color: var(--gs-btn-border-hover);
 }
 
 .game-area {

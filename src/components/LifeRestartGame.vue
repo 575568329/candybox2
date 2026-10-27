@@ -302,6 +302,10 @@ onUnmounted(() => {
   z-index: 1000;
   transition: transform 0.3s ease;
   flex-shrink: 0;
+  background: var(--gs-shell-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--gs-border);
 }
 
 .header-container.header-hidden {
@@ -321,17 +325,18 @@ onUnmounted(() => {
 }
 
 .back-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 5px;
-  color: white;
-  font-size: 11px;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 12px;
+  background: var(--gs-btn-bg);
+  border: 1px solid var(--gs-btn-border);
+  border-radius: var(--gs-radius);
+  color: var(--gs-text-1);
+  font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s, border-color 0.2s;
 }
 
 .back-btn:hover {

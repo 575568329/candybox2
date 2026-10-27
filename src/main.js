@@ -7,6 +7,7 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import './utils/utools-mock.js'
 import router from './router'
 import App from './App.vue'
+import './styles/tokens.css'
 import './main.css'
 
 // 初始化 vConsole（仅开发环境）
