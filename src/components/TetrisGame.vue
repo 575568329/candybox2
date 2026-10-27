@@ -18,6 +18,19 @@ const save = useTetrisSave()
 const focusMode = ref(false)
 const showUploadPrompt = ref(false)
 const userInfo = ref(null)
+
+// 棋盘按视口自适应放大(棋盘原始 10×20×22px ≈ 224×448, 视觉重心)
+const boardScale = ref(1)
+const updateBoardScale = () => {
+  const boardPixelHeight = BOARD_HEIGHT * BLOCK_SIZE + 8
+  const boardPixelWidth = BOARD_WIDTH * BLOCK_SIZE + 8
+  const availH = window.innerHeight - 130 // 顶部栏+内边距
+  const availW = window.innerWidth - 520  // 两侧面板预留
+  const scale = Math.min(availH / boardPixelHeight, availW / boardPixelWidth)
+  boardScale.value = Math.max(1, Math.min(1.5, scale))
+}
+window.addEventListener('resize', updateBoardScale)
+updateBoardScale()
 const toast = ref({ show: false, message: '', type: 'info' })
 let toastTimer = null
 
@@ -192,6 +205,7 @@ onMounted(async () => {
 onUnmounted(async () => {
   game.stopGameLoop()
   window.removeEventListener('beforeunload', handleBeforeUnload)
+  window.removeEventListener('resize', updateBoardScale)
 
   if (game.isPlaying.value && !game.gameOver.value) {
     await save.saveGame({
@@ -251,19 +265,20 @@ onUnmounted(async () => {
             </div>
           </div>
 
-          <div class="info-box">
-            <h3>分数</h3>
-            <p class="value">{{ game.score.value.toLocaleString() }}</p>
-          </div>
-
-          <div class="info-box">
-            <h3>等级</h3>
-            <p class="value level">{{ game.level.value }}</p>
-          </div>
-
-          <div class="info-box">
-            <h3>行数</h3>
-            <p class="value lines">{{ game.lines.value }}</p>
+          <!-- 分数/等级/行数 合并为紧凑一行 -->
+          <div class="info-box stats-box">
+            <div class="stat">
+              <span class="stat-label">分数</span>
+              <span class="value">{{ game.score.value.toLocaleString() }}</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">等级</span>
+              <span class="value level">{{ game.level.value }}</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">行数</span>
+              <span class="value lines">{{ game.lines.value }}</span>
+            </div>
           </div>
 
           <div class="info-box controls">
@@ -274,10 +289,6 @@ onUnmounted(async () => {
             <div class="control-item">↓ / S {{ keyboard.swapDropKeys.value ? '硬降' : '缓降' }}</div>
             <div class="control-item">空格 {{ keyboard.swapDropKeys.value ? '缓降' : '硬降' }}</div>
             <div class="control-item">Ctrl+F 专注模式</div>
-          </div>
-
-          <div class="info-box setting-box">
-            <h3>按键设置</h3>
             <div class="setting-row" @click="toggleSwapDropKeys">
               <span class="setting-label">软硬互换</span>
               <div class="toggle-slider" :class="{ active: keyboard.swapDropKeys.value }">
@@ -289,7 +300,11 @@ onUnmounted(async () => {
 
         <!-- 游戏板 -->
         <div class="board-container">
-          <div class="game-board" :class="{ paused: game.isPaused.value, 'game-over': game.gameOver.value }">
+          <div
+            class="game-board"
+            :class="{ paused: game.isPaused.value, 'game-over': game.gameOver.value }"
+            :style="{ transform: `scale(${boardScale})` }"
+          >
             <!-- 开始提示 -->
             <div v-if="!game.isPlaying.value && !game.gameOver.value" class="overlay" @click="handleStart">
               <p>{{ save.autoLoaded.value ? '已加载存档 - ' : '' }}按 Enter 或点击开始</p>
@@ -332,14 +347,16 @@ onUnmounted(async () => {
 
         <!-- 右侧面板 -->
         <div v-if="!focusMode" class="user-panel">
-          <div class="info-box">
-            <h3>玩家</h3>
-            <p class="user-name">{{ userInfo?.nickname || '未知' }}</p>
-          </div>
-
-          <div class="info-box">
-            <h3>当前排名</h3>
-            <p class="rank">{{ ranking.getRankDisplay(game.score.value) }}</p>
+          <!-- 玩家 + 当前排名 合并为紧凑一行 -->
+          <div class="info-box stats-box">
+            <div class="stat">
+              <span class="stat-label">玩家</span>
+              <span class="user-name">{{ userInfo?.nickname || '未知' }}</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">当前排名</span>
+              <span class="value">{{ ranking.getRankDisplay(game.score.value) }}</span>
+            </div>
           </div>
 
           <div class="info-box ranking">
@@ -432,8 +449,9 @@ onUnmounted(async () => {
 
 .game-content {
   display: grid;
-  grid-template-columns: minmax(0, 32%) 1fr minmax(0, 32%);
-  gap: 8px;
+  /* 侧栏收窄固定区间, 中间列拿走剩余空间给棋盘(视觉重心) */
+  grid-template-columns: minmax(180px, 200px) minmax(0, 1fr) minmax(200px, 250px);
+  gap: 12px;
   align-items: flex-start;
   flex: 1;
   padding: 0 8px;
@@ -479,7 +497,42 @@ onUnmounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-width: 180px;
+  max-width: 250px;
+  width: 100%;
+}
+
+/* 紧凑统计块: 标签+值 横排分组(分数/等级/行数、玩家/排名) */
+.stats-box {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.stats-box .stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.stats-box .value,
+.stats-box .user-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.stats-box .user-name {
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .info-panel { grid-column: 1; justify-self: end; }
@@ -564,7 +617,12 @@ onUnmounted(async () => {
 }
 
 /* 游戏板 */
-.board-container { grid-column: 2; justify-self: center; }
+.board-container {
+  grid-column: 2;
+  justify-self: center;
+  align-self: center;
+  padding: 8px 0;
+}
 
 .game-board {
   position: relative;
@@ -572,6 +630,7 @@ onUnmounted(async () => {
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
   padding: 2px;
+  transform-origin: center center;
 }
 
 .board-grid { display: flex; flex-direction: column; gap: 1px; }
