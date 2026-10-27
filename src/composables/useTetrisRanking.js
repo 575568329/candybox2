@@ -18,6 +18,8 @@ export function useTetrisRanking() {
   const rankingData = ref([])
   const loadingRanking = ref(false)
   const rankingError = ref('')
+  // 是否成功加载过榜单(区分「加载中/失败」与「加载成功但榜上无人」)
+  const hasLoadedRanking = ref(false)
   const currentUserRanking = ref(null)
   const lastRankingRefreshTime = ref(0)
 
@@ -60,6 +62,7 @@ export function useTetrisRanking() {
           if (Date.now() - timestamp < RANKING_REFRESH_COOLDOWN) {
             rankingData.value = data
             lastRankingRefreshTime.value = timestamp
+            hasLoadedRanking.value = true
             return { success: true, count: data.length, fromCache: true }
           }
         } catch (e) {
@@ -93,6 +96,7 @@ export function useTetrisRanking() {
 
       rankingData.value = ranking
       lastRankingRefreshTime.value = Date.now()
+      hasLoadedRanking.value = true
 
       // 保存到本地缓存
       localStorage.setItem(RANKING_LOCAL_KEY, JSON.stringify({
@@ -171,7 +175,10 @@ export function useTetrisRanking() {
 
   // 获取排名显示文本
   const getRankDisplay = (score) => {
-    if (rankingData.value.length === 0) return '等待数据...'
+    if (rankingData.value.length === 0) {
+      // 加载成功但榜上无人 ≠ 还在等数据：新榜单刚上线或尚未有人上传分数
+      return hasLoadedRanking.value ? '虚位以待' : '等待数据...'
+    }
     const rank = getCurrentRank(score)
     if (rank) return `第 ${rank} 名`
     const minScore = rankingData.value[MAX_RANKING - 1]?.score || 0
@@ -182,6 +189,7 @@ export function useTetrisRanking() {
     rankingData,
     loadingRanking,
     rankingError,
+    hasLoadedRanking,
     currentUserRanking,
     lastRankingRefreshTime,
     DISPLAY_RANKING,

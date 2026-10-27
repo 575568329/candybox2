@@ -347,6 +347,9 @@ onUnmounted(async () => {
             <div v-if="ranking.loadingRanking.value" class="loading">加载中...</div>
             <div v-else-if="ranking.rankingError.value" class="error">加载失败</div>
             <div v-else class="ranking-list">
+              <div v-if="ranking.rankingData.value.length === 0" class="ranking-empty">
+                🏆 榜上暂时无人<br />打完一局上传分数，第一名就是你！
+              </div>
               <div
                 v-for="(item, index) in ranking.rankingData.value.slice(0, ranking.DISPLAY_RANKING)"
                 :key="index"
@@ -607,6 +610,13 @@ onUnmounted(async () => {
 /* 排行榜 */
 .ranking { max-height: 200px; overflow: hidden; }
 .ranking-list { overflow-y: auto; max-height: 150px; }
+.ranking-empty {
+  padding: 16px 8px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--gs-text-2, rgba(255, 255, 255, 0.6));
+}
 .ranking-item {
   display: grid;
   grid-template-columns: 24px 1fr 50px;
